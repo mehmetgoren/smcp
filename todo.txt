@@ -1,0 +1,3 @@
+- start' da tüm client bilgilerini al, redis' e yaz
+- heartbeat' i python dahil implemente et
+- linux servisleri yaz, heartbeat e göre ayağakaldırsın timeout olanları
