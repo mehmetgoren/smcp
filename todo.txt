@@ -1,3 +1,5 @@
-- start' da tüm client bilgilerini al, redis' e yaz
+- start' da tüm client bilgilerini al, redis' e yaz ->done
 - heartbeat' i python dahil implemente et
 - linux servisleri yaz, heartbeat e göre ayağakaldırsın timeout olanları
+
+- klasöre kayıt ederken önce gün klaösür, ardından saat bazlı farklı klasörler olsun

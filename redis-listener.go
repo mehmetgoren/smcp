@@ -26,8 +26,8 @@ func (r RedisSubPubOptions) Listen(onMessageReceived func(message *redis.Message
 	log.Println("redis pubsub is listening")
 
 	channel := r.Channel
-	subscribe := r.Client.Subscribe(ctx, channel)
-	subscriptions := subscribe.ChannelWithSubscriptions(ctx, 1)
+	subscribe := r.Client.Subscribe(r.Context, channel)
+	subscriptions := subscribe.ChannelWithSubscriptions(r.Context, 1)
 	for {
 		select {
 		case sub := <-subscriptions:

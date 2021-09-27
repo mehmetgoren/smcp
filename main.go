@@ -16,14 +16,28 @@ func createRedisClient() *redis.Client {
 	})
 }
 
+func createRedisRepository(opts *RedisOptions) RedisRepository {
+	return RedisRepository{opts, "users"}
+}
+
+func createHeartbeat(rep *RedisRepository) *HeartbeatClient{
+	var heartbeat HeartbeatClient = HeartbeatClient{rep, 5}
+
+	return &heartbeat
+}
+
 func main() {
+
 	redisClient := createRedisClient()
 	redisOptions := RedisOptions{BackgroundContext, redisClient}
-	var rc RedisListener = RedisSubPubOptions{&redisOptions,  "obj_detection"}
+	var rep = createRedisRepository(&redisOptions)
 
-	bi := TelegramBotOptions{Token: "1944447440:AAF8C0vJ2rjd__9CWT7PVcg9cON8QixdAMs"}
-	si := SenderOptions{Id: 1608330992, Username:"ionian_gokalp", LanguageCode: "en"}
-	telegramBotClient, botErr := CreateTelegramBot(&bi, &si)
+	heartbeat := createHeartbeat(&rep)
+	go heartbeat.Start()
+
+	var rc RedisListener = RedisSubPubOptions{&redisOptions,  "obj_detection"}
+	token := "1944447440:AAF8C0vJ2rjd__9CWT7PVcg9cON8QixdAMs"
+	telegramBotClient, botErr := CreateTelegramBot(token, &rep)
 	if botErr != nil{
 		log.Println("telegram bot connection couldn't be created")
 		return
@@ -44,26 +58,3 @@ func main() {
 		}
 	})
 }
-
-//defer func() {
-//	fmt.Println("not today asshole")
-//	if r := recover(); r!= nil {
-//		log.Println("recovered from ", r)
-//	}
-//}()
-//
-//y := 01
-//x := 12 / y
-//
-//panic("yo mf")
-//
-//print(x)
-
-//defer func() {
-//	fmt.Println(" not today asshole")
-//	if r := recover(); r!= nil {
-//		log.Println("recovered from ", r)
-//	}
-//}()
-
-//startListen()

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"fmt"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"io/ioutil"
 	"log"
@@ -58,7 +59,6 @@ func (d DiskInfoHandler) Handle(message *Message)  (interface{}, error) {
 	return fileFullPath, nil
 }
 
-///////////////////////////////////////////////////////telegram \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 type TelegramAndDiskHandler struct {
 	*DiskInfoHandler
 	*TelegramBotClient
@@ -75,41 +75,51 @@ func (td TelegramAndDiskHandler) Handle(message *Message) (interface{}, error)  
 	tbFile.UniqueID = message.FileName
 	tbPhoto:=&tb.Photo{File: tbFile, Caption: message.FileName}
 
-	msg, sendErr := td.Bot.Send(td.Sender, tbPhoto)
-	if sendErr != nil{
-		log.Println("send error is " + sendErr.Error())
-		return nil, sendErr
+	users := td.repository.GetAllUsers()
+	for _, user := range users {
+		msg, sendErr := td.Bot.Send(user, tbPhoto)
+		if sendErr != nil {
+			log.Println("send error for " + msg.Caption + ". The error is " + sendErr.Error())
+			return nil, sendErr
+		}
 	}
 
-	log.Println("image send successfully as " + message.FileName + " the message is " + msg.Text)
+	log.Println("image send successfully as " + message.FileName + " the message is " + message.FileName)
 
-	return msg, nil
+	return nil, nil
 }
 
-///////////////////////////////////////////////////////telegram \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 type TelegramHandler struct {
 	*TelegramBotClient
 }
 
-func (t TelegramHandler) Handle(message *Message) (interface{}, error)   {
+func handlePanic() {
+	if a := recover(); a != nil {
+		fmt.Println("RECOVER", a)
+	}
+}
+
+func (t TelegramHandler) Handle(message *Message) (interface{}, error) {
+	defer handlePanic()
+
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(*message.Base64Image))
 	defer ioutil.NopCloser(reader)
 
 	tbFile := tb.FromReader(reader)
-	//tbFile.FileID = "aaa.jpg"
-	//tbFile.FileLocal = "aaa.jpg"
-	//tbFile.FilePath = "aaa.jpg"
 	tbFile.UniqueID = message.FileName
-	tbPhoto:=&tb.Photo{File: tbFile, Caption: message.FileName}
+	tbPhoto := &tb.Photo{File: tbFile, Caption: message.FileName}
 
-	msg, sendErr := t.Bot.Send(t.Sender, tbPhoto)
-	if sendErr != nil{
-		log.Println("send error is " + sendErr.Error())
-		return nil, sendErr
+	users := t.repository.GetAllUsers()
+	for _, user := range users {
+		msg, sendErr := t.Bot.Send(user, tbPhoto)
+		if sendErr != nil {
+			log.Println("send error for " + msg.Caption + ". The error is " + sendErr.Error())
+			return nil, sendErr
+		}
 	}
 
-	log.Println("image send successfully as " + message.FileName + " the message is " + msg.Text)
+	log.Println("image send successfully as " + message.FileName + " the message is " + message.FileName)
 
-	return msg, nil
+	return nil, nil
 }
 
