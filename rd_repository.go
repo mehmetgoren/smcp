@@ -47,6 +47,12 @@ func (r RedisRepository) GetAllUsers() []*tb.User{
 	return list
 }
 
+func (r RedisRepository) sendList(list []*tb.User )  {
+	jsonBytes, _ := json.Marshal(list)
+	jsonList := string(jsonBytes)
+	r.Client.Set(r.Context, r.Key, jsonList, 0)
+}
+
 func (r RedisRepository) AddUser(user *tb.User)  *RedisRepository{
 	if user == nil{
 		return &r
@@ -61,9 +67,35 @@ func (r RedisRepository) AddUser(user *tb.User)  *RedisRepository{
 		}
 	}
 	list = append(list, user)
-	jsonBytes, _ := json.Marshal(list)
-	jsonList := string(jsonBytes)
-	r.Client.Set(r.Context, r.Key, jsonList, 0)
+	r.sendList(list)
+
+	return &r
+}
+
+func (r RedisRepository) RemoveUser(user *tb.User) *RedisRepository{
+	if user == nil{
+		return &r
+	}
+	list := r.GetAllUsers()
+	if list == nil{
+		return &r
+	}
+	removeFn := func (s []*tb.User, i int) []*tb.User {
+		s[i] = s[len(s)-1]
+		return s[:len(s)-1]
+	}
+
+	userIndex := -1
+	for i, currentUser := range list{
+		if currentUser.ID == user.ID{
+			userIndex = i
+			break
+		}
+	}
+	if userIndex > -1{
+		list = removeFn(list, userIndex)
+		r.sendList(list)
+	}
 
 	return &r
 }

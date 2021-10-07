@@ -27,7 +27,6 @@ func createHeartbeat(rep *RedisRepository) *HeartbeatClient{
 }
 
 func main() {
-
 	redisClient := createRedisClient()
 	redisOptions := RedisOptions{BackgroundContext, redisClient}
 	var rep = createRedisRepository(&redisOptions)

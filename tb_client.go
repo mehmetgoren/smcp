@@ -45,7 +45,10 @@ func CreateTelegramBot(token string, rep *RedisRepository) (TelegramBotClient, e
 		bot.Handle("/start", func(m *tb.Message) {
 			rep.AddUser(m.Sender)
 			bot.Send(m.Sender, "Camera capturing is now starting")
-			//
+		})
+		bot.Handle("/stop", func (m *tb.Message){
+			bot.Send(m.Sender, "You will never get any message from me")
+			rep.RemoveUser(m.Sender)
 		})
 		go func() {
 			log.Println("telegram bot has been started -> " + bot.Me.Username)
