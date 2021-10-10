@@ -42,8 +42,8 @@ func main() {
 		return
 	}
 
-	//diskInfo := DiskInfoHandler{RootFolder: "/home/gokalp/Documents/shared_codes/resources/delete_later/"}
 	var parser MessageParser = ObjectDetectionMessage {}
+	//var handler = DiskInfoHandler{RootFolder: "/home/gokalp/Documents/shared_codes/object_detector/resources/delete_later/"}
 	var handler MessageHandler = TelegramHandler{&telegramBotClient} //TelegramAndDiskHandler{&diskInfo, &telegramBotClient}
 	rc.Listen(func(message *redis.Message) {
 		msg := parser.Parse(message)
