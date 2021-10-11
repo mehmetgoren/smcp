@@ -12,8 +12,6 @@ type MessageParser interface {
 }
 
 type ObjectDetectionParser struct {
-	FileName string `json:"file_name"`
-	Image []byte `json:"image"`
 }
 
 func (m ObjectDetectionParser) Parse(redisMsg *redis.Message) *Message  {
