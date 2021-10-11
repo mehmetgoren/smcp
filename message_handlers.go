@@ -11,8 +11,8 @@ import (
 )
 
 type Message struct{
-	FileName string
-	Base64Image *string
+	FileName string `json:"file_name"`
+	Base64Image *string `json:"base64_image"`
 }
 
 type MessageHandler interface{

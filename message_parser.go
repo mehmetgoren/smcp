@@ -1,9 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/go-redis/redis/v8"
 	"log"
-	"strings"
 )
 
 // todo:need generic, changes implementation after 1.18
@@ -11,22 +11,17 @@ type MessageParser interface {
 	Parse(redisMsg *redis.Message) *Message // todo: Message needs to be generic after 1.18
 }
 
-type ObjectDetectionMessage struct {
-	Separator string
+type ObjectDetectionParser struct {
+	FileName string `json:"file_name"`
+	Image []byte `json:"image"`
 }
 
-func (m ObjectDetectionMessage) Parse(redisMsg *redis.Message) *Message  {
-	if len(m.Separator) == 0{
-		m.Separator = "■"
+func (m ObjectDetectionParser) Parse(redisMsg *redis.Message) *Message  {
+	var msg Message
+	err := json.Unmarshal([]byte(redisMsg.Payload), &msg)
+	if err != nil {
+		log.Println("json conversation has been failed due to " + err.Error())
+		return nil
 	}
-	arr := strings.Split(redisMsg.Payload, m.Separator)
-	if len(arr) == 2 {
-		fileName := arr[0]
-		base64Image := arr[1]
-		log.Println(arr[0])
-
-		return &Message{FileName: fileName, Base64Image: &base64Image}
-	}
-
-	return nil
+	return &msg
 }
