@@ -45,12 +45,12 @@ func (d *FolderManager) getTodayFolder() (*drive.File, error) {
 
 	var err error
 	if err = mutex.Lock(); err != nil {
-		log.Fatalf("An error occurred on mutex lock: " + err.Error())
+		log.Println("An error occurred on mutex lock: " + err.Error())
 		return nil, err
 	}
 	defer func(mutex *redsync.Mutex) {
 		if ok, err := mutex.Unlock(); !ok || err != nil {
-			log.Fatalf("An error occurred on mutex unlock: " + err.Error())
+			log.Println("An error occurred on mutex unlock: " + err.Error())
 		}
 	}(mutex)
 

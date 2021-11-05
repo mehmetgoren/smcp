@@ -7,10 +7,18 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime/debug"
 	"smcp/gdrive"
 	"smcp/tb"
 	"strings"
 )
+
+func handlePanic() {
+	if r := recover(); r != nil {
+		fmt.Println("RECOVER", r)
+		debug.PrintStack()
+	}
+}
 
 type Message struct {
 	FileName    string  `json:"file_name"`
@@ -26,6 +34,7 @@ type DiskEventHandler struct {
 }
 
 func (d *DiskEventHandler) Handle(message *Message) (interface{}, error) {
+	defer handlePanic()
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(*message.Base64Image))
 	defer ioutil.NopCloser(reader)
 	fileBytes, err := ioutil.ReadAll(reader)
@@ -65,12 +74,6 @@ type TelegramEventHandler struct {
 	*tb.TelegramBotClient
 }
 
-func handlePanic() {
-	if a := recover(); a != nil {
-		fmt.Println("RECOVER", a)
-	}
-}
-
 func (t *TelegramEventHandler) Handle(message *Message) (interface{}, error) {
 	defer handlePanic()
 
@@ -100,6 +103,7 @@ type GdriveEventHandler struct {
 }
 
 func (g *GdriveEventHandler) Handle(message *Message) (interface{}, error) {
+	defer handlePanic()
 	file, err := g.UploadImage(message.FileName, message.Base64Image)
 	if err != nil {
 		log.Println("An error occurred during the handling image uploading to google drive")
