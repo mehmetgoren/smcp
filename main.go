@@ -37,7 +37,7 @@ func main() {
 	go heartbeat.Start()
 
 	var rc rd.RedisListener = rd.RedisSubPubOptions{RedisOptions: &redisOptions, Channel: "obj_detection"}
-	token := "****"
+	token := "1944447440:AAF8C0vJ2rjd__9CWT7PVcg9cON8QixdAMs"
 	telegramBotClient, botErr := tb.CreateTelegramBot(token, &rep)
 	if botErr != nil {
 		log.Println("telegram bot connection couldn't be created")
@@ -73,3 +73,4 @@ func main() {
 		}
 	})
 }
+
