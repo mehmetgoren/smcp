@@ -6,15 +6,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/drive/v3"
-	"google.golang.org/api/option"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/drive/v3"
+	"google.golang.org/api/option"
 )
 
 var parent = "/home/gokalp/Documents/shared_codes/smcp/gdrive"
@@ -121,12 +122,12 @@ func (g *GdriveClient) createService() (*drive.Service, error) {
 func (g *GdriveClient) query(q string) (*drive.FileList, error) {
 	service, err := g.createService()
 	if err != nil {
-		log.Fatalf("Unable to create drive service: %v", err)
+		log.Printf("Unable to create drive service: %v", err)
 		return nil, err
 	}
 	r, err := service.Files.List().Q(q).Do()
 	if err != nil {
-		log.Fatalf("Unable to retrieve directories: %v", err)
+		log.Printf("Unable to retrieve directories: %v", err)
 		return nil, err
 	}
 
@@ -136,7 +137,7 @@ func (g *GdriveClient) query(q string) (*drive.FileList, error) {
 func (g *GdriveClient) createPermission(file *drive.File) (*drive.Permission, error) {
 	service, err := g.createService()
 	if err != nil {
-		log.Fatalf("Unable to create drive service: %v", err)
+		log.Printf("Unable to create drive service: %v", err)
 		return nil, err
 	}
 
@@ -157,7 +158,7 @@ func (g *GdriveClient) createPermission(file *drive.File) (*drive.Permission, er
 func (g *GdriveClient) FindFolderByName(name string) (*drive.File, error) {
 	r, err := g.query("mimeType='application/vnd.google-apps.folder' and name='" + name + "'")
 	if err != nil {
-		log.Fatalf("Unable to retrieve directories: %v", err)
+		log.Printf("Unable to retrieve directories: %v", err)
 		return nil, err
 	}
 	if len(r.Files) == 0 {
@@ -170,14 +171,14 @@ func (g *GdriveClient) FindFolderByName(name string) (*drive.File, error) {
 func (g *GdriveClient) CreateFolder(name string) (*drive.File, error) {
 	service, err := g.createService()
 	if err != nil {
-		log.Fatalf("Unable to create drive service: %v", err)
+		log.Printf("Unable to create drive service: %v", err)
 		return nil, err
 	}
 
 	folder := drive.File{Name: name, MimeType: "application/vnd.google-apps.folder"}
 	do, err := service.Files.Create(&folder).Do()
 	if err != nil {
-		log.Fatalf("Unable to create drive service: %v", err)
+		log.Printf("Unable to create drive service: %v", err)
 		return nil, err
 	}
 
@@ -196,7 +197,7 @@ func (g *GdriveClient) GetChildFolders(file *drive.File) (*drive.FileList, error
 func (g *GdriveClient) FindChildFolder(parentFolder *drive.File, childName string) (*drive.File, error) {
 	r, err := g.query("mimeType='application/vnd.google-apps.folder' and '" + parentFolder.Id + "' in parents and name='" + childName + "'")
 	if err != nil {
-		log.Fatalf("Unable to retrieve directories: %v", err)
+		log.Printf("Unable to retrieve directories: %v", err)
 		return nil, err
 	}
 
@@ -210,7 +211,7 @@ func (g *GdriveClient) FindChildFolder(parentFolder *drive.File, childName strin
 func (g *GdriveClient) CreateChildFolder(parentFolder *drive.File, childName string) (*drive.File, error) {
 	service, err := g.createService()
 	if err != nil {
-		log.Fatalf("Unable to create drive service: %v", err)
+		log.Printf("Unable to create drive service: %v", err)
 		return nil, err
 	}
 
@@ -219,7 +220,7 @@ func (g *GdriveClient) CreateChildFolder(parentFolder *drive.File, childName str
 	childFolder := drive.File{Name: childName, MimeType: "application/vnd.google-apps.folder", Parents: parents}
 	do, err := service.Files.Create(&childFolder).Do()
 	if err != nil {
-		log.Fatalf("Unable to child folder on drive service: %v", err)
+		log.Printf("Unable to child folder on drive service: %v", err)
 		return nil, err
 	}
 
@@ -229,7 +230,7 @@ func (g *GdriveClient) CreateChildFolder(parentFolder *drive.File, childName str
 func (g *GdriveClient) CreateImageFile(parentId string, fileName string, imageBase64 *string) (*drive.File, error) {
 	service, err := g.createService()
 	if err != nil {
-		log.Fatalf("Unable to create drive service: %v", err)
+		log.Printf("Unable to create drive service: %v", err)
 		return nil, err
 	}
 
@@ -244,13 +245,13 @@ func (g *GdriveClient) CreateImageFile(parentId string, fileName string, imageBa
 	defer func(readerCloser io.ReadCloser) {
 		err := readerCloser.Close()
 		if err != nil {
-			log.Fatalf("Unable to create iame file: %v", err)
+			log.Printf("Unable to create iame file: %v", err)
 		}
 	}(readerCloser)
 
 	do, err := service.Files.Create(imageFile).Media(readerCloser).Do()
 	if err != nil {
-		log.Fatalf("Unable to create an image file on drive service: %v", err)
+		log.Printf("Unable to create an image file on drive service: %v", err)
 		return nil, err
 	}
 

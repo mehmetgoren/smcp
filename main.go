@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/go-redis/redis/v8"
 	"log"
 	"smcp/eb"
 	"smcp/gdrive"
 	"smcp/rd"
 	"smcp/tb"
+
+	"github.com/go-redis/redis/v8"
 )
 
 func createRedisClient() *redis.Client {
@@ -47,7 +48,7 @@ func main() {
 	var parser eb.ObjectDetectionParser
 	var diskHandler = eb.DiskEventHandler{RootFolder: "/home/gokalp/Documents/shared_codes/object_detector/resources/delete_later/"}
 	handlerList = append(handlerList, &diskHandler)
-	var tbHandler eb.EventHandler = &eb.TelegramEventHandler{TelegramBotClient: &telegramBotClient} //TelegramAndDiskHandler{&diskInfo, &telegramBotClient}
+	var tbHandler eb.EventHandler = &eb.TelegramEventHandler{TelegramBotClient: &telegramBotClient}
 	handlerList = append(handlerList, tbHandler)
 
 	var fm = &gdrive.FolderManager{}
