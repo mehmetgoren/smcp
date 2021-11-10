@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"runtime/debug"
+	"smcp/disk"
 	"smcp/gdrive"
 	"smcp/tb"
 	"strings"
@@ -31,7 +31,7 @@ type EventHandler interface {
 }
 
 type DiskEventHandler struct {
-	RootFolder string // "/home/gokalp/Documents/shared_codes/resources/delete_later/"
+	FolderManager *disk.FolderManager
 }
 
 func (d *DiskEventHandler) Handle(message *Message) (interface{}, error) {
@@ -48,27 +48,33 @@ func (d *DiskEventHandler) Handle(message *Message) (interface{}, error) {
 		return nil, err
 	}
 
-	fileFullPath := d.RootFolder + message.FileName
-	file, err := os.Create(d.RootFolder + message.FileName)
+	fileFullPath, err := d.FolderManager.SaveFile(message.FileName, fileBytes)
 	if err != nil {
-		log.Println("DiskEventHandler: Creating the image file error: " + err.Error())
+		log.Println("DiskEventHandler: Saving base64 file error: " + err.Error())
 		return nil, err
 	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			log.Println("DiskEventHandler: Closing the image file error: " + err.Error())
-		}
-	}(file)
 
-	if _, err := file.Write(fileBytes); err != nil {
-		log.Println("DiskEventHandler: Writing the image file error: " + err.Error())
-		return nil, err
-	}
-	if err := file.Sync(); err != nil {
-		log.Println("DiskEventHandler: Syncing the image file error: " + err.Error())
-		return nil, err
-	}
+	//fileFullPath := d.RootFolder + message.FileName
+	//file, err := os.Create(d.RootFolder + message.FileName)
+	//if err != nil {
+	//	log.Println("DiskEventHandler: Creating the image file error: " + err.Error())
+	//	return nil, err
+	//}
+	//defer func(file *os.File) {
+	//	err := file.Close()
+	//	if err != nil {
+	//		log.Println("DiskEventHandler: Closing the image file error: " + err.Error())
+	//	}
+	//}(file)
+	//
+	//if _, err := file.Write(fileBytes); err != nil {
+	//	log.Println("DiskEventHandler: Writing the image file error: " + err.Error())
+	//	return nil, err
+	//}
+	//if err := file.Sync(); err != nil {
+	//	log.Println("DiskEventHandler: Syncing the image file error: " + err.Error())
+	//	return nil, err
+	//}
 
 	log.Println("DiskEventHandler: image saved successfully as " + message.FileName)
 

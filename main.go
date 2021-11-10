@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"smcp/disk"
 	"smcp/eb"
 	"smcp/gdrive"
 	"smcp/rd"
@@ -19,11 +20,11 @@ func createRedisClient() *redis.Client {
 }
 
 func createRedisRepository(opts *rd.RedisOptions) rd.RedisRepository {
-	return rd.RedisRepository{RedisOptions: opts, Key: "users"}
+	return rd.RedisRepository{RedisOptions: opts}
 }
 
 func createHeartbeat(rep *rd.RedisRepository) *rd.HeartbeatClient {
-	var heartbeat rd.HeartbeatClient = rd.HeartbeatClient{Repository: rep, TimeSecond: 5}
+	var heartbeat = rd.HeartbeatClient{Repository: rep, TimeSecond: 5}
 
 	return &heartbeat
 }
@@ -36,24 +37,26 @@ func main() {
 	heartbeat := createHeartbeat(&rep)
 	go heartbeat.Start()
 
-	var rc rd.RedisListener = rd.RedisSubPubOptions{RedisOptions: &redisOptions, Channel: "obj_detection"}
+	handlerList := make([]eb.EventHandler, 0)
+	var parser eb.ObjectDetectionParser
+	var diskHandler = eb.DiskEventHandler{}
+	diskHandler.FolderManager = &disk.FolderManager{SmartMachineFolderPath: "/home/gokalp/Documents/shared_codes/object_detector/resources/delete_later/"}
+	diskHandler.FolderManager.Redis = redisClient
+	handlerList = append(handlerList, &diskHandler)
+
 	token := "1944447440:AAF8C0vJ2rjd__9CWT7PVcg9cON8QixdAMs"
 	telegramBotClient, botErr := tb.CreateTelegramBot(token, &rep)
 	if botErr != nil {
 		log.Println("telegram bot connection couldn't be created")
 		return
 	}
-
-	handlerList := make([]eb.EventHandler, 0)
-	var parser eb.ObjectDetectionParser
-	var diskHandler = eb.DiskEventHandler{RootFolder: "/home/gokalp/Documents/shared_codes/object_detector/resources/delete_later/"}
-	handlerList = append(handlerList, &diskHandler)
 	var tbHandler eb.EventHandler = &eb.TelegramEventHandler{TelegramBotClient: &telegramBotClient}
 	handlerList = append(handlerList, tbHandler)
 
 	var fm = &gdrive.FolderManager{}
 	fm.Redis = redisClient
 	fm.Gdrive = &gdrive.GdriveClient{}
+	fm.Gdrive.Repository = &rep
 	var gHandler = &eb.GdriveEventHandler{FolderManager: fm}
 	handlerList = append(handlerList, gHandler)
 
@@ -61,6 +64,7 @@ func main() {
 		EventHandlers: handlerList,
 	}
 
+	var rc rd.RedisListener = rd.RedisSubPubOptions{RedisOptions: &redisOptions, Channel: "obj_detection"}
 	rc.Listen(func(message *redis.Message) {
 		msg := parser.Parse(message)
 		if msg == nil {
@@ -73,4 +77,3 @@ func main() {
 		}
 	})
 }
-

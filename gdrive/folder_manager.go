@@ -33,24 +33,22 @@ func parseMonth(month time.Month) (int, string) {
 	return monthInt, monthStr
 }
 
-var mutexName = "global-mutex-today"
-
 func (d *FolderManager) getTodayFolder() (*drive.File, error) {
 	if d.Pool == nil {
 		d.Pool = goredis.NewPool(d.Redis) // or, pool := redigo.NewPool(...)
 	}
 
 	rs := redsync.New(d.Pool)
-	mutex := rs.NewMutex(mutexName)
+	mutex := rs.NewMutex("mutex-folder-manager")
 
 	var err error
 	if err = mutex.Lock(); err != nil {
-		log.Println("An error occurred on mutex lock: " + err.Error())
+		log.Println("An error occurred on FolderManager mutex lock: " + err.Error())
 		return nil, err
 	}
 	defer func(mutex *redsync.Mutex) {
 		if ok, err := mutex.Unlock(); !ok || err != nil {
-			log.Println("An error occurred on mutex unlock: " + err.Error())
+			log.Println("An error occurred on FolderManager mutex unlock: " + err.Error())
 		}
 	}(mutex)
 

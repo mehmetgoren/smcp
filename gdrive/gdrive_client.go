@@ -6,11 +6,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/go-redsync/redsync/v4"
+	redsyncredis "github.com/go-redsync/redsync/v4/redis"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v8"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
+	"smcp/rd"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -18,19 +20,18 @@ import (
 	"google.golang.org/api/option"
 )
 
-var parent = "/home/gokalp/Documents/shared_codes/smcp/gdrive"
-var tokFile = parent + "/token.json"
-var credentialsPath = parent + "/credentials.json"
+var redisKeyCredentials = "gdrive_credentials"
+var redisKeyToken = "gdrive_token"
 
 // Retrieve a token, saves the token, then returns the generated client.
-func getClient(config *oauth2.Config) *http.Client {
+func (g *GdriveClient) getClient(config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
-	tok, err := tokenFromFile(tokFile)
+	tok, err := g.tokenFromRedis()
 	if err != nil {
-		tok = getTokenFromWeb(config)
-		saveToken(tokFile, tok)
+		tok = g.getTokenFromWeb(config)
+		g.saveTokenRedis(tok)
 	}
 	//todo: added for refresh, see it if it works.
 	config.TokenSource(context.Background(), tok)
@@ -38,7 +39,7 @@ func getClient(config *oauth2.Config) *http.Client {
 }
 
 // Request a token from the web, then returns the retrieved token.
-func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+func (g *GdriveClient) getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	fmt.Printf("Go to the following link in your browser then type the "+
 		"authorization code: \n%v\n", authURL)
@@ -56,65 +57,85 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 }
 
 // Retrieves a token from a local file.
-func tokenFromFile(file string) (*oauth2.Token, error) {
-	f, err := os.Open(file)
+func (g *GdriveClient) tokenFromRedis() (*oauth2.Token, error) {
+	tokenJson, err := g.Repository.GetValue(redisKeyToken)
 	if err != nil {
 		return nil, err
 	}
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			log.Printf("Unable to read token file %v", err)
-		}
-	}(f)
 	tok := &oauth2.Token{}
-	err = json.NewDecoder(f).Decode(tok)
-	return tok, err
+	err = json.Unmarshal([]byte(tokenJson), tok)
+	if err != nil {
+		log.Println("json conversation has been failed on tokenFromRedis due to " + err.Error())
+		return nil, err
+	}
+	return tok, nil
 }
 
 // Saves a token to a file path.
-func saveToken(path string, token *oauth2.Token) {
-	fmt.Printf("Saving credential file to: %s\n", path)
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+func (g *GdriveClient) saveTokenRedis(token *oauth2.Token) {
+	tokenJson, err := json.Marshal(token)
 	if err != nil {
-		log.Printf("Unable to cache oauth token: %v", err)
+		log.Println("json conversation has been failed on saveTokenRedis due to " + err.Error())
 	}
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			log.Printf("Unable to save token file %v", err)
-		}
-	}(f)
-	json.NewEncoder(f).Encode(token)
+
+	status := g.Repository.SetValue(redisKeyToken, string(tokenJson))
+	if status.Err() != nil{
+		log.Println("redis setting value has been failed on saveTokenRedis due to " + err.Error())
+	}
 }
 
 type GdriveClient struct {
-	CredentialsPath string
+	Repository *rd.RedisRepository
+	srv *drive.Service
+	pool redsyncredis.Pool
 }
 
+//var mutexName = "mutex-folder-manager"
+
 func (g *GdriveClient) createService() (*drive.Service, error) {
-	if len(g.CredentialsPath) == 0 {
-		g.CredentialsPath = credentialsPath
+	if g.srv != nil{
+		return g.srv, nil
 	}
-	b, err := ioutil.ReadFile(g.CredentialsPath)
+
+	if g.pool == nil {
+		g.pool = goredis.NewPool(g.Repository.Client)
+	}
+	rs := redsync.New(g.pool)
+	mutex := rs.NewMutex("mutex-gdrive")
+	if e := mutex.Lock(); e != nil {
+		log.Println("An error occurred on GdriveClient mutex lock: " + e.Error())
+		return nil, e
+	}
+	defer func(mutex *redsync.Mutex) {
+		if ok, err := mutex.Unlock(); !ok || err != nil {
+			log.Println("An error occurred on GdriveClient mutex unlock: " + err.Error())
+		}
+	}(mutex)
+
+	if g.srv != nil{
+		return g.srv, nil
+	}
+
+	b, err := g.Repository.GetValue(redisKeyCredentials)
 	if err != nil {
 		log.Printf("Unable to read client secret file: %v", err)
 		return nil, err
 	}
 
 	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, drive.DriveScope)
+	config, err := google.ConfigFromJSON([]byte(b), drive.DriveScope)
 	if err != nil {
 		log.Printf("Unable to parse client secret file to config: %v", err)
 		return nil, err
 	}
-	client := getClient(config)
+	client := g.getClient(config)
 
 	srv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
 	if err != nil {
 		log.Printf("Unable to retrieve Drive client: %v", err)
 		return nil, err
 	}
+	g.srv = srv
 
 	return srv, nil
 }

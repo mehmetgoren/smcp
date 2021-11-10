@@ -17,15 +17,16 @@ type RedisOptions struct {
 
 type RedisRepository struct {
 	*RedisOptions
-	Key string
 }
 
-func (r RedisRepository) GetAllUsers() []*tb.User{
-	jsonList, err := r.Client.Get(context.Background(), r.Key).Result()
+var redisKeyUsers = "users"
+
+func (r *RedisRepository) GetAllUsers() []*tb.User{
+	jsonList, err := r.Client.Get(context.Background(), redisKeyUsers).Result()
 	if err != nil{
 		if err.Error() == "redis: nil"{
 			emptyList := make([]*tb.User, 0)
-			r.Client.Set(context.Background(), r.Key, emptyList, 0)
+			r.Client.Set(context.Background(), redisKeyUsers, emptyList, 0)
 			return emptyList
 		}else{
 			log.Println(err.Error())
@@ -46,38 +47,38 @@ func (r RedisRepository) GetAllUsers() []*tb.User{
 	return list
 }
 
-func (r RedisRepository) sendList(list []*tb.User )  {
+func (r *RedisRepository) sendList(list []*tb.User )  {
 	jsonBytes, _ := json.Marshal(list)
 	jsonList := string(jsonBytes)
-	r.Client.Set(context.Background(), r.Key, jsonList, 0)
+	r.Client.Set(context.Background(), redisKeyUsers, jsonList, 0)
 }
 
-func (r RedisRepository) AddUser(user *tb.User)  *RedisRepository {
+func (r *RedisRepository) AddUser(user *tb.User)  *RedisRepository {
 	if user == nil{
-		return &r
+		return r
 	}
 	list := r.GetAllUsers()
 	if list == nil{
-		return &r
+		return r
 	}
 	for _, addedUser := range list{
 		if addedUser.ID == user.ID{
-			return &r
+			return r
 		}
 	}
 	list = append(list, user)
 	r.sendList(list)
 
-	return &r
+	return r
 }
 
-func (r RedisRepository) RemoveUser(user *tb.User) *RedisRepository {
+func (r *RedisRepository) RemoveUser(user *tb.User) *RedisRepository {
 	if user == nil{
-		return &r
+		return r
 	}
 	list := r.GetAllUsers()
 	if list == nil{
-		return &r
+		return r
 	}
 	removeFn := func (s []*tb.User, i int) []*tb.User {
 		s[i] = s[len(s)-1]
@@ -96,7 +97,7 @@ func (r RedisRepository) RemoveUser(user *tb.User) *RedisRepository {
 		r.sendList(list)
 	}
 
-	return &r
+	return r
 }
 
 func toMyFormat(t *time.Time)  string{
@@ -120,4 +121,23 @@ func toMyFormat(t *time.Time)  string{
 
 func (r RedisRepository) Heartbeat(time *time.Time){
 	r.Client.Set(context.Background(), "heartbeat_smcp", toMyFormat(time), 0)
+}
+
+func (r *RedisRepository) GetValue(key string) (string, error){
+	result, err := r.Client.Get(context.Background(), key).Result()
+	if err != nil{
+		if err.Error() == "redis: nil"{
+			r.Client.Set(context.Background(), key, "", 0)
+			return "", err
+		}else{
+			log.Println(err.Error())
+			return "", err
+		}
+	}
+
+	return result, nil
+}
+
+func (r *RedisRepository) SetValue(key string, value string) *redis.StatusCmd{
+    return r.Client.Set(context.Background(), key, value, 0)
 }
