@@ -59,13 +59,13 @@ func (d *FolderManager) getTodayFolder() (*drive.File, error) {
 	if smartMachineFolder == nil {
 		smartMachineFolder, err = d.Gdrive.FindFolderByName(rootDirectoryName) // look first if ti was created before.
 		if err != nil {
-			log.Fatalf("Unable to parse client secret file to config: %v", err)
+			log.Printf("Unable to parse client secret file to config: %v", err)
 			return nil, err
 		}
 		if smartMachineFolder == nil {
 			smartMachineFolder, err = d.Gdrive.CreateFolder(rootDirectoryName)
 			if err != nil {
-				log.Fatalf("An error occurred on create Smart Machine folder: " + err.Error())
+				log.Printf("An error occurred on create Smart Machine folder: " + err.Error())
 				return nil, err
 			}
 			log.Println("Smart Machine folder has been created first time")
@@ -83,7 +83,7 @@ func (d *FolderManager) getTodayFolder() (*drive.File, error) {
 			var err error
 			childFolder, err = d.Gdrive.FindChildFolder(parentFolder, childFolderName) // look if it was created by other process before.
 			if err != nil {
-				log.Fatalf("An error occurred on find folder: " + childFolderName + ", err: " + err.Error())
+				log.Printf("An error occurred on find folder: " + childFolderName + ", err: " + err.Error())
 				return nil, err
 			}
 
@@ -91,7 +91,7 @@ func (d *FolderManager) getTodayFolder() (*drive.File, error) {
 				log.Println(childFolderName + " Child folder is now creating first time: ")
 				childFolder, err = d.Gdrive.CreateChildFolder(parentFolder, childFolderName)
 				if err != nil {
-					log.Fatalf("An error occurred on create folder: " + childFolderName + ", err: " + err.Error())
+					log.Printf("An error occurred on create folder: " + childFolderName + ", err: " + err.Error())
 					return nil, err
 				}
 			} else {
@@ -148,7 +148,7 @@ func (d *FolderManager) UploadImage(fileName string, base64Image *string) (*driv
 	}
 	file, err := d.Gdrive.CreateImageFile(todayFolder.Id, fileName, base64Image)
 	if err != nil {
-		log.Fatalf("Unable to upload image on drive service: %v", err)
+		log.Printf("Unable to upload image on drive service: %v", err)
 		return nil, err
 	}
 
