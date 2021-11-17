@@ -40,7 +40,7 @@ func main() {
 	handlerList := make([]eb.EventHandler, 0)
 	var parser eb.ObjectDetectionParser
 	var diskHandler = eb.DiskEventHandler{}
-	diskHandler.FolderManager = &disk.FolderManager{SmartMachineFolderPath: "/home/gokalp/Documents/shared_codes/object_detector/resources/delete_later/"}
+	diskHandler.FolderManager = &disk.FolderManager{SmartMachineFolderPath: "/home/gokalp/Pictures/detected/"}
 	diskHandler.FolderManager.Redis = redisClient
 	handlerList = append(handlerList, &diskHandler)
 
@@ -64,7 +64,7 @@ func main() {
 		EventHandlers: handlerList,
 	}
 
-	var rc rd.RedisListener = rd.RedisSubPubOptions{RedisOptions: &redisOptions, Channel: "obj_detection"}
+	var rc rd.RedisListener = rd.RedisSubPubOptions{RedisOptions: &redisOptions, Channel: "detect"}
 	rc.Listen(func(message *redis.Message) {
 		msg := parser.Parse(message)
 		if msg == nil {

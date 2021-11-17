@@ -20,8 +20,10 @@ import (
 	"google.golang.org/api/option"
 )
 
-var redisKeyCredentials = "gdrive_credentials"
-var redisKeyToken = "gdrive_token"
+const (
+	RedisKeyCredentials = "gdrive_credentials"
+	RedisKeyToken       = "gdrive_token"
+)
 
 // Retrieve a token, saves the token, then returns the generated client.
 func (g *GdriveClient) getClient(config *oauth2.Config) *http.Client {
@@ -58,7 +60,7 @@ func (g *GdriveClient) getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 
 // Retrieves a token from a local file.
 func (g *GdriveClient) tokenFromRedis() (*oauth2.Token, error) {
-	tokenJson, err := g.Repository.GetValue(redisKeyToken)
+	tokenJson, err := g.Repository.GetValue(RedisKeyToken)
 	if err != nil {
 		return nil, err
 	}
@@ -78,22 +80,22 @@ func (g *GdriveClient) saveTokenRedis(token *oauth2.Token) {
 		log.Println("json conversation has been failed on saveTokenRedis due to " + err.Error())
 	}
 
-	status := g.Repository.SetValue(redisKeyToken, string(tokenJson))
-	if status.Err() != nil{
+	status := g.Repository.SetValue(RedisKeyToken, string(tokenJson))
+	if status.Err() != nil {
 		log.Println("redis setting value has been failed on saveTokenRedis due to " + err.Error())
 	}
 }
 
 type GdriveClient struct {
 	Repository *rd.RedisRepository
-	srv *drive.Service
-	pool redsyncredis.Pool
+	srv        *drive.Service
+	pool       redsyncredis.Pool
 }
 
 //var mutexName = "mutex-folder-manager"
 
 func (g *GdriveClient) createService() (*drive.Service, error) {
-	if g.srv != nil{
+	if g.srv != nil {
 		return g.srv, nil
 	}
 
@@ -112,11 +114,11 @@ func (g *GdriveClient) createService() (*drive.Service, error) {
 		}
 	}(mutex)
 
-	if g.srv != nil{
+	if g.srv != nil {
 		return g.srv, nil
 	}
 
-	b, err := g.Repository.GetValue(redisKeyCredentials)
+	b, err := g.Repository.GetValue(RedisKeyCredentials)
 	if err != nil {
 		log.Printf("Unable to read client secret file: %v", err)
 		return nil, err
