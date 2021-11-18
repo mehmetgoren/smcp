@@ -26,10 +26,19 @@ func(t TelegramBotClient) GetUsers() []*tb.User {
 	return t.Repository.GetAllUsers()
 }
 
-func CreateTelegramBot(token string, rep *rd.RedisRepository) (TelegramBotClient, error) {
-	if len(token) == 0 || rep == nil {
+func CreateTelegramBot(rep *rd.RedisRepository) (TelegramBotClient, error) {
+	if rep == nil {
 		return empty(), errors.New("insufficient arguments")
 	}
+
+	token, err := rep.GetValue("telegram_bot_token")
+	if err != nil || len(token) == 0 || rep == nil {
+		if err == nil {
+			err = errors.New("no token has been found, exiting...")
+		}
+		return empty(), err
+	}
+
 	bot, err := tb.NewBot(tb.Settings{
 		// You can also set custom API URL.
 		// If field is empty it equals to "https://api.telegram.org".

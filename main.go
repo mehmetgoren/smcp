@@ -44,8 +44,7 @@ func main() {
 	diskHandler.FolderManager.Redis = redisClient
 	handlerList = append(handlerList, &diskHandler)
 
-	token := "1944447440:AAF8C0vJ2rjd__9CWT7PVcg9cON8QixdAMs"
-	telegramBotClient, botErr := tb.CreateTelegramBot(token, &rep)
+	telegramBotClient, botErr := tb.CreateTelegramBot(&rep)
 	if botErr != nil {
 		log.Println("telegram bot connection couldn't be created")
 		return
