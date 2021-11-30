@@ -54,7 +54,7 @@ func main() {
 	handlerList := make([]eb.EventHandler, 0)
 	var parser eb.ObjectDetectionParser
 	var diskHandler = eb.DiskEventHandler{}
-	diskHandler.FolderManager = &disk.FolderManager{SmartMachineFolderPath: "/go/src/smcp/images/"}
+	diskHandler.FolderManager = &disk.FolderManager{SmartMachineFolderPath: "/home/gokalp/Pictures/detected/"}
 	diskHandler.FolderManager.Redis = redisClient
 	handlerList = append(handlerList, &diskHandler)
 
