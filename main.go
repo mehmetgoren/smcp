@@ -1,19 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"smcp/disk"
 	"smcp/eb"
 	"smcp/gdrive"
 	"smcp/rd"
 	"smcp/tb"
+	"strconv"
 
 	"github.com/go-redis/redis/v8"
 )
 
-func createRedisClient() *redis.Client {
+func createRedisClient(host string, port int) *redis.Client {
 	return redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     host + ":" + strconv.Itoa(port),
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
@@ -30,7 +33,18 @@ func createHeartbeat(rep *rd.RedisRepository) *rd.HeartbeatClient {
 }
 
 func main() {
-	redisClient := createRedisClient()
+	host := os.Getenv("REDIS_HOST")
+	fmt.Println("Redis host: ", host)
+	if len(host) == 0 {
+		host = "127.0.0.1"
+	}
+	portStr := os.Getenv("REDIS_PORT")
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		log.Println("An error occurred while converting Redis port value:" + err.Error())
+		port = 6379
+	}
+	redisClient := createRedisClient(host, port)
 	redisOptions := rd.RedisOptions{Client: redisClient}
 	var rep = createRedisRepository(&redisOptions)
 
@@ -46,7 +60,7 @@ func main() {
 
 	telegramBotClient, botErr := tb.CreateTelegramBot(&rep)
 	if botErr != nil {
-		log.Println("telegram bot connection couldn't be created")
+		log.Println("telegram bot connection couldn't be created, the operation is now exiting")
 		return
 	}
 	var tbHandler eb.EventHandler = &eb.TelegramEventHandler{TelegramBotClient: &telegramBotClient}
