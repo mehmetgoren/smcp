@@ -6,4 +6,5 @@ ADD . /go/src/smcp
 WORKDIR /go/src/smcp
 RUN go get smcp
 RUN go install
+RUN mkdir /go/src/smcp/images
 ENTRYPOINT ["/go/bin/smcp"]
