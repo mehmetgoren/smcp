@@ -6,30 +6,43 @@ import (
 	"os"
 	"smcp/disk"
 	"smcp/eb"
-	"smcp/gdrive"
 	"smcp/rd"
-	"smcp/tb"
 	"strconv"
 
 	"github.com/go-redis/redis/v8"
 )
 
-func createRedisClient(host string, port int) *redis.Client {
+const (
+	MAIN     = 0
+	SERVICE  = 1
+	SOURCES  = 2
+	EVENTBUS = 3
+)
+
+func createRedisClient(host string, port int, db int) *redis.Client {
 	return redis.NewClient(&redis.Options{
 		Addr:     host + ":" + strconv.Itoa(port),
 		Password: "", // no password set
-		DB:       0,  // use default DB
+		DB:       db, // use default DB (0)
 	})
 }
 
-func createRedisRepository(opts *rd.RedisOptions) rd.RedisRepository {
-	return rd.RedisRepository{RedisOptions: opts}
+//func createRedisRepository(opts *rd.RedisOptions) rd.RedisRepository {
+//	return rd.RedisRepository{RedisOptions: opts}
+//}
+
+func createHeartbeatRepository(opts *rd.RedisOptions) *rd.HeartbeatRepository {
+	var heartbeatRepository = rd.HeartbeatRepository{RedisOptions: opts, TimeSecond: 10}
+
+	return &heartbeatRepository
 }
 
-func createHeartbeat(rep *rd.RedisRepository) *rd.HeartbeatClient {
-	var heartbeat = rd.HeartbeatClient{Repository: rep, TimeSecond: 5}
+func createPidRepository(host string, port int) *rd.PidRepository {
+	client := createRedisClient(host, port, SERVICE) // 1 is SERVICE db
+	opts := rd.RedisOptions{Client: client}
+	var pidRepository = rd.PidRepository{RedisOptions: &opts}
 
-	return &heartbeat
+	return &pidRepository
 }
 
 func main() {
@@ -44,34 +57,42 @@ func main() {
 		log.Println("An error occurred while converting Redis port value:" + err.Error())
 		port = 6379
 	}
-	redisClient := createRedisClient(host, port)
-	redisOptions := rd.RedisOptions{Client: redisClient}
-	var rep = createRedisRepository(&redisOptions)
+	redisClientMain := createRedisClient(host, port, MAIN)
+	redisOptions := rd.RedisOptions{Client: redisClientMain}
+	//var rep = createRedisRepository(&redisOptions)
 
-	heartbeat := createHeartbeat(&rep)
+	heartbeat := createHeartbeatRepository(&redisOptions)
 	go heartbeat.Start()
+
+	pid := createPidRepository(host, port)
+	go func() {
+		_, err := pid.Add()
+		if err != nil {
+			log.Println("An error occurred while registering process id, error is:" + err.Error())
+		}
+	}()
 
 	handlerList := make([]eb.EventHandler, 0)
 	var parser eb.ObjectDetectionParser
 	var diskHandler = eb.DiskEventHandler{}
 	diskHandler.FolderManager = &disk.FolderManager{SmartMachineFolderPath: "/home/gokalp/Pictures/detected/"}
-	diskHandler.FolderManager.Redis = redisClient
+	diskHandler.FolderManager.Redis = redisClientMain
 	handlerList = append(handlerList, &diskHandler)
 
-	telegramBotClient, botErr := tb.CreateTelegramBot(&rep)
-	if botErr != nil {
-		log.Println("telegram bot connection couldn't be created, the operation is now exiting")
-		return
-	}
-	var tbHandler eb.EventHandler = &eb.TelegramEventHandler{TelegramBotClient: &telegramBotClient}
-	handlerList = append(handlerList, tbHandler)
+	//telegramBotClient, botErr := tb.CreateTelegramBot(&rep)
+	//if botErr != nil {
+	//	log.Println("telegram bot connection couldn't be created, the operation is now exiting")
+	//	return
+	//}
+	//var tbHandler eb.EventHandler = &eb.TelegramEventHandler{TelegramBotClient: &telegramBotClient}
+	//handlerList = append(handlerList, tbHandler)
 
-	var fm = &gdrive.FolderManager{}
-	fm.Redis = redisClient
-	fm.Gdrive = &gdrive.GdriveClient{}
-	fm.Gdrive.Repository = &rep
-	var gHandler = &eb.GdriveEventHandler{FolderManager: fm}
-	handlerList = append(handlerList, gHandler)
+	//var fm = &gdrive.FolderManager{}
+	//fm.Redis = redisClient
+	//fm.Gdrive = &gdrive.GdriveClient{}
+	//fm.Gdrive.Repository = &rep
+	//var gHandler = &eb.GdriveEventHandler{FolderManager: fm}
+	//handlerList = append(handlerList, gHandler)
 
 	var handler = eb.ComboEventHandler{
 		EventHandlers: handlerList,
