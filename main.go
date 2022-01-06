@@ -31,16 +31,14 @@ func createRedisClient(host string, port int, db int) *redis.Client {
 //	return rd.RedisRepository{RedisOptions: opts}
 //}
 
-func createHeartbeatRepository(opts *rd.RedisOptions) *rd.HeartbeatRepository {
-	var heartbeatRepository = rd.HeartbeatRepository{RedisOptions: opts, TimeSecond: 10}
+func createHeartbeatRepository(opts *rd.RedisOptions, serviceName string) *rd.HeartbeatRepository {
+	var heartbeatRepository = rd.HeartbeatRepository{RedisOptions: opts, TimeSecond: 10, ServiceName: serviceName}
 
 	return &heartbeatRepository
 }
 
-func createPidRepository(host string, port int) *rd.PidRepository {
-	client := createRedisClient(host, port, SERVICE) // 1 is SERVICE db
-	opts := rd.RedisOptions{Client: client}
-	var pidRepository = rd.PidRepository{RedisOptions: &opts}
+func createPidRepository(opts *rd.RedisOptions, host string, port int) *rd.ServiceRepository {
+	var pidRepository = rd.ServiceRepository{RedisOptions: opts}
 
 	return &pidRepository
 }
@@ -61,12 +59,15 @@ func main() {
 	redisOptions := rd.RedisOptions{Client: redisClientMain}
 	//var rep = createRedisRepository(&redisOptions)
 
-	heartbeat := createHeartbeatRepository(&redisOptions)
+	clientService := createRedisClient(host, port, SERVICE) // 1 is SERVICE db
+	optsService := rd.RedisOptions{Client: clientService}
+	serviceName := "cloud_service"
+	heartbeat := createHeartbeatRepository(&optsService, serviceName)
 	go heartbeat.Start()
 
-	pid := createPidRepository(host, port)
+	serviceRepository := createPidRepository(&optsService, host, port)
 	go func() {
-		_, err := pid.Add()
+		_, err := serviceRepository.Add(serviceName)
 		if err != nil {
 			log.Println("An error occurred while registering process id, error is:" + err.Error())
 		}

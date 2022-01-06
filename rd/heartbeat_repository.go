@@ -10,10 +10,11 @@ import (
 
 type HeartbeatRepository struct {
 	*RedisOptions
-	TimeSecond int64
+	TimeSecond  int64
+	ServiceName string
 }
 
-func toMyFormat(t *time.Time) string {
+func DatetimeNow(t *time.Time) string {
 	var sb strings.Builder
 	sb.WriteString(strconv.Itoa(t.Year()))
 	sb.WriteString("-")
@@ -40,9 +41,9 @@ func (h *HeartbeatRepository) Start() {
 		select {
 		case timeTicker := <-ticker.C:
 			heartbeatObj := map[string]interface{}{
-				"smcp_service": toMyFormat(&timeTicker),
+				"heartbeat": DatetimeNow(&timeTicker),
 			}
-			h.Client.HSet(context.Background(), "heartbeat", heartbeatObj)
+			h.Client.HSet(context.Background(), "services:"+h.ServiceName, heartbeatObj)
 			log.Println("Heartbeat was beaten at " + timeTicker.Format(time.ANSIC))
 			//case <- quit:
 			//	ticker.Stop()
