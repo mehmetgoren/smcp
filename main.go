@@ -76,7 +76,8 @@ func main() {
 	handlerList := make([]eb.EventHandler, 0)
 	var parser eb.ObjectDetectionParser
 	var diskHandler = eb.DiskEventHandler{}
-	diskHandler.FolderManager = &disk.FolderManager{SmartMachineFolderPath: "/home/gokalp/Pictures/detected/"}
+	// todo: this needs to be moved to a config file
+	diskHandler.FolderManager = &disk.FolderManager{SmartMachineFolderPath: "/mnt/sde1/detected/"}
 	diskHandler.FolderManager.Redis = redisClientMain
 	handlerList = append(handlerList, &diskHandler)
 
