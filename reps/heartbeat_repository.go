@@ -1,6 +1,7 @@
-package rd
+package reps
 
 import (
+	"github.com/go-redis/redis/v8"
 	"golang.org/x/net/context"
 	"log"
 	"strconv"
@@ -9,7 +10,7 @@ import (
 )
 
 type HeartbeatRepository struct {
-	*RedisOptions
+	Client      *redis.Client
 	TimeSecond  int64
 	ServiceName string
 }

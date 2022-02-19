@@ -1,4 +1,4 @@
-package rd
+package reps
 
 import (
 	"context"
@@ -8,12 +8,8 @@ import (
 	"log"
 )
 
-type RedisOptions struct {
-	Client *redis.Client
-}
-
 type RedisRepository struct {
-	*RedisOptions
+	Client *redis.Client
 }
 
 var redisKeyUsers = "users"

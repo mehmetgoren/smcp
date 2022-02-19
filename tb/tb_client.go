@@ -4,29 +4,29 @@ import (
 	"errors"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
-	"smcp/rd"
+	"smcp/reps"
 	"time"
 )
 
 type TelegramBotOptions struct {
-	Token string //"1944447440:AAF8C0vJ2rjd__9CWT7PVcg9cON8QixdAMs"
-	Repository *rd.RedisRepository
+	Token      string //"1944447440:AAF8C0vJ2rjd__9CWT7PVcg9cON8QixdAMs"
+	Repository *reps.RedisRepository
 }
 
 type TelegramBotClient struct {
-	Bot    *tb.Bot
-	Repository *rd.RedisRepository
+	Bot        *tb.Bot
+	Repository *reps.RedisRepository
 }
 
 func empty() TelegramBotClient {
 	return TelegramBotClient{}
 }
 
-func(t TelegramBotClient) GetUsers() []*tb.User {
+func (t TelegramBotClient) GetUsers() []*tb.User {
 	return t.Repository.GetAllUsers()
 }
 
-func CreateTelegramBot(rep *rd.RedisRepository) (TelegramBotClient, error) {
+func CreateTelegramBot(rep *reps.RedisRepository) (TelegramBotClient, error) {
 	if rep == nil {
 		return empty(), errors.New("insufficient arguments")
 	}
@@ -56,7 +56,7 @@ func CreateTelegramBot(rep *rd.RedisRepository) (TelegramBotClient, error) {
 			rep.AddUser(m.Sender)
 			bot.Send(m.Sender, "Camera capturing is now starting")
 		})
-		bot.Handle("/stop", func (m *tb.Message){
+		bot.Handle("/stop", func(m *tb.Message) {
 			bot.Send(m.Sender, "You will never get any message from me")
 			rep.RemoveUser(m.Sender)
 		})

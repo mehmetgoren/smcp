@@ -6,7 +6,7 @@ import (
 	"os"
 	"smcp/disk"
 	"smcp/eb"
-	"smcp/rd"
+	"smcp/reps"
 	"strconv"
 
 	"github.com/go-redis/redis/v8"
@@ -14,9 +14,8 @@ import (
 
 const (
 	MAIN     = 0
-	SERVICE  = 1
-	SOURCES  = 2
-	EVENTBUS = 3
+	RQ       = 1
+	EVENTBUS = 15
 )
 
 func createRedisClient(host string, port int, db int) *redis.Client {
@@ -27,18 +26,14 @@ func createRedisClient(host string, port int, db int) *redis.Client {
 	})
 }
 
-//func createRedisRepository(opts *rd.RedisOptions) rd.RedisRepository {
-//	return rd.RedisRepository{RedisOptions: opts}
-//}
-
-func createHeartbeatRepository(opts *rd.RedisOptions, serviceName string) *rd.HeartbeatRepository {
-	var heartbeatRepository = rd.HeartbeatRepository{RedisOptions: opts, TimeSecond: 10, ServiceName: serviceName}
+func createHeartbeatRepository(client *redis.Client, serviceName string) *reps.HeartbeatRepository {
+	var heartbeatRepository = reps.HeartbeatRepository{Client: client, TimeSecond: 10, ServiceName: serviceName}
 
 	return &heartbeatRepository
 }
 
-func createPidRepository(opts *rd.RedisOptions, host string, port int) *rd.ServiceRepository {
-	var pidRepository = rd.ServiceRepository{RedisOptions: opts}
+func createServiceRepository(client *redis.Client) *reps.ServiceRepository {
+	var pidRepository = reps.ServiceRepository{Client: client}
 
 	return &pidRepository
 }
@@ -55,17 +50,14 @@ func main() {
 		log.Println("An error occurred while converting Redis port value:" + err.Error())
 		port = 6379
 	}
-	redisClientMain := createRedisClient(host, port, MAIN)
-	redisOptions := rd.RedisOptions{Client: redisClientMain}
+	redisClient := createRedisClient(host, port, MAIN)
 	//var rep = createRedisRepository(&redisOptions)
 
-	clientService := createRedisClient(host, port, SERVICE) // 1 is SERVICE db
-	optsService := rd.RedisOptions{Client: clientService}
-	serviceName := "cloud_service"
-	heartbeat := createHeartbeatRepository(&optsService, serviceName)
+	serviceName := "cloud_integration_service"
+	heartbeat := createHeartbeatRepository(redisClient, serviceName)
 	go heartbeat.Start()
 
-	serviceRepository := createPidRepository(&optsService, host, port)
+	serviceRepository := createServiceRepository(redisClient)
 	go func() {
 		_, err := serviceRepository.Add(serviceName)
 		if err != nil {
@@ -73,12 +65,12 @@ func main() {
 		}
 	}()
 
+	var configRep = reps.ConfigRepository{Connection: redisClient}
+	config, _ := configRep.GetConfig()
 	handlerList := make([]eb.EventHandler, 0)
-	var parser eb.ObjectDetectionParser
 	var diskHandler = eb.DiskEventHandler{}
-	// todo: this needs to be moved to a config file
-	diskHandler.FolderManager = &disk.FolderManager{SmartMachineFolderPath: "/mnt/sde1/detected/"}
-	diskHandler.FolderManager.Redis = redisClientMain
+	diskHandler.FolderManager = &disk.FolderManager{SmartMachineFolderPath: config.AiConfig.DetectedFolder}
+	diskHandler.FolderManager.Redis = redisClient
 	handlerList = append(handlerList, &diskHandler)
 
 	//telegramBotClient, botErr := tb.CreateTelegramBot(&rep)
@@ -96,20 +88,10 @@ func main() {
 	//var gHandler = &eb.GdriveEventHandler{FolderManager: fm}
 	//handlerList = append(handlerList, gHandler)
 
-	var handler = eb.ComboEventHandler{
+	var handler = &eb.ComboEventHandler{
 		EventHandlers: handlerList,
 	}
 
-	var rc rd.RedisListener = rd.RedisSubPubOptions{RedisOptions: &redisOptions, Channel: "detect"}
-	rc.Listen(func(message *redis.Message) {
-		msg := parser.Parse(message)
-		if msg == nil {
-			log.Println("Message parsing returned nil")
-			return
-		}
-		_, err := handler.Handle(msg)
-		if err != nil {
-			log.Println("An error occurred on handle: " + err.Error())
-		}
-	})
+	var e = eb.EventBus{Connection: redisClient, Channel: "detect_service"}
+	e.Subscribe(handler)
 }

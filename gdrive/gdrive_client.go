@@ -12,7 +12,7 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"smcp/rd"
+	"smcp/reps"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -87,7 +87,7 @@ func (g *GdriveClient) saveTokenRedis(token *oauth2.Token) {
 }
 
 type GdriveClient struct {
-	Repository *rd.RedisRepository
+	Repository *reps.RedisRepository
 	srv        *drive.Service
 	pool       redsyncredis.Pool
 }

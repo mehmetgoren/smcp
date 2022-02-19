@@ -3,12 +3,14 @@ package eb
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"io/ioutil"
 	"log"
 	"runtime/debug"
 	"smcp/disk"
 	"smcp/gdrive"
 	"smcp/tb"
+	"smcp/utils"
 	"strings"
 
 	"gopkg.in/tucnak/telebot.v2"
@@ -21,26 +23,27 @@ func handlePanic() {
 	}
 }
 
-type Message struct {
+type DetectedImage struct {
 	FileName    string  `json:"file_name"`
 	Base64Image *string `json:"base64_image"`
 }
 
+// EventHandler needs desperately generics
 type EventHandler interface {
-	Handle(message *Message) (interface{}, error)
+	Handle(event *redis.Message) (interface{}, error)
 }
 
 type DiskEventHandler struct {
 	FolderManager *disk.FolderManager
 }
 
-func (d *DiskEventHandler) Handle(message *Message) (interface{}, error) {
+func (d *DiskEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer handlePanic()
-	if message == nil {
-		log.Println("DiskEventHandler: Message passed as null, disk operation won't be executed")
-		return nil, nil
-	}
-	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(*message.Base64Image))
+
+	var de = DetectedImage{}
+	utils.DeserializeJson(event.Payload, &de)
+
+	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(*de.Base64Image))
 	defer ioutil.NopCloser(reader)
 	fileBytes, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -48,13 +51,13 @@ func (d *DiskEventHandler) Handle(message *Message) (interface{}, error) {
 		return nil, err
 	}
 
-	fileFullPath, err := d.FolderManager.SaveFile(message.FileName, fileBytes)
+	fileFullPath, err := d.FolderManager.SaveFile(de.FileName, fileBytes)
 	if err != nil {
 		log.Println("DiskEventHandler: Saving base64 file error: " + err.Error())
 		return nil, err
 	}
 
-	log.Println("DiskEventHandler: image saved successfully as " + message.FileName)
+	log.Println("DiskEventHandler: image saved successfully as " + de.FileName)
 
 	return fileFullPath, nil
 }
@@ -63,19 +66,18 @@ type TelegramEventHandler struct {
 	*tb.TelegramBotClient
 }
 
-func (t *TelegramEventHandler) Handle(message *Message) (interface{}, error) {
+func (t *TelegramEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer handlePanic()
-	if message == nil {
-		log.Println("TelegramEventHandler: Message passed as null, telegram operation won't be executed")
-		return nil, nil
-	}
 
-	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(*message.Base64Image))
+	var de = DetectedImage{}
+	utils.DeserializeJson(event.Payload, &de)
+
+	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(*de.Base64Image))
 	defer ioutil.NopCloser(reader)
 
 	tbFile := telebot.FromReader(reader)
-	tbFile.UniqueID = message.FileName
-	tbPhoto := &telebot.Photo{File: tbFile, Caption: message.FileName}
+	tbFile.UniqueID = de.FileName
+	tbPhoto := &telebot.Photo{File: tbFile, Caption: de.FileName}
 
 	users := t.Repository.GetAllUsers()
 	for _, user := range users {
@@ -86,7 +88,7 @@ func (t *TelegramEventHandler) Handle(message *Message) (interface{}, error) {
 		}
 	}
 
-	log.Println("TelegramEventHandler: image send successfully as " + message.FileName + " the message is " + message.FileName)
+	log.Println("TelegramEventHandler: image send successfully as " + de.FileName + " the message is " + de.FileName)
 
 	return nil, nil
 }
@@ -95,13 +97,13 @@ type GdriveEventHandler struct {
 	*gdrive.FolderManager
 }
 
-func (g *GdriveEventHandler) Handle(message *Message) (interface{}, error) {
+func (g *GdriveEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer handlePanic()
-	if message == nil {
-		log.Println("GdriveEventHandler: Message passed as null, google drive operation won't be executed")
-		return nil, nil
-	}
-	file, err := g.UploadImage(message.FileName, message.Base64Image)
+
+	var de = DetectedImage{}
+	utils.DeserializeJson(event.Payload, &de)
+
+	file, err := g.UploadImage(de.FileName, de.Base64Image)
 	if err != nil {
 		log.Println("GdriveEventHandler: An error occurred during the handling image uploading to google drive")
 		return nil, err
@@ -114,14 +116,14 @@ type ComboEventHandler struct {
 	EventHandlers []EventHandler
 }
 
-func (c *ComboEventHandler) Handle(message *Message) (interface{}, error) {
+func (c *ComboEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	for _, ev := range c.EventHandlers {
-		go func(eventHandler EventHandler, msg Message) {
-			_, err := eventHandler.Handle(&msg)
+		go func(eventHandler EventHandler, evt *redis.Message) {
+			_, err := eventHandler.Handle(evt)
 			if err != nil {
 				log.Println("ComboEventHandler: An error occurred during the combo event handling")
 			}
-		}(ev, *message)
+		}(ev, event)
 	}
 
 	return nil, nil
