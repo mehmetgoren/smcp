@@ -24,6 +24,12 @@ type Config struct {
 		Threshold         float64 `json:"threshold"`
 		WhiteList         []int   `json:"white_list"`
 	} `json:"torch"`
+	Tensorflow struct {
+		ModelName   string  `json:"model_name"`
+		Threshold   float64 `json:"threshold"`
+		WhiteList   []int   `json:"white_list"`
+		CacheFolder string  `json:"cache_folder"`
+	} `json:"tensorflow"`
 	OnceDetector struct {
 		ImagehashThreshold int     `json:"imagehash_threshold"`
 		PsnrThreshold      float64 `json:"psnr_threshold"`
@@ -51,10 +57,11 @@ type Config struct {
 	FFmpeg struct {
 		UseDoubleQuotesForPath                  bool    `json:"use_double_quotes_for_path"`
 		MaxOperationRetryCount                  int     `json:"max_operation_retry_count"`
-		CheckLeakyFfmpegProcessesInterval       int     `json:"check_leaky_ffmpeg_processes_interval"`
+		CheckZombieFfmpegProcessesInterval      int     `json:"check_zombie_ffmpeg_processes_interval"`
 		CheckUnstoppedContainersInterval        int     `json:"check_unstopped_containers_interval"`
 		CheckFfmpegStreamRunningProcessInterval int     `json:"check_ffmpeg_stream_running_process_interval"`
 		CheckFfmpegRecordRunningProcessInterval int     `json:"check_ffmpeg_record_running_process_interval"`
+		CheckFfmpegRecordStuckProcessInterval   int     `json:"check_ffmpeg_record_stuck_process_interval"`
 		StartTaskWaitForInterval                float32 `json:"start_task_wait_for_interval"`
 		EventListenerHandlerType                int     `json:"event_listener_handler_type"`
 	} `json:"ffmpeg"`
