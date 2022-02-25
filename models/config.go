@@ -55,15 +55,12 @@ type Config struct {
 		Read   string `json:"read"`
 	} `json:"path"`
 	FFmpeg struct {
-		UseDoubleQuotesForPath                  bool    `json:"use_double_quotes_for_path"`
-		MaxOperationRetryCount                  int     `json:"max_operation_retry_count"`
-		CheckZombieFfmpegProcessesInterval      int     `json:"check_zombie_ffmpeg_processes_interval"`
-		CheckUnstoppedContainersInterval        int     `json:"check_unstopped_containers_interval"`
-		CheckFfmpegStreamRunningProcessInterval int     `json:"check_ffmpeg_stream_running_process_interval"`
-		CheckFfmpegRecordRunningProcessInterval int     `json:"check_ffmpeg_record_running_process_interval"`
-		CheckFfmpegRecordStuckProcessInterval   int     `json:"check_ffmpeg_record_stuck_process_interval"`
-		StartTaskWaitForInterval                float32 `json:"start_task_wait_for_interval"`
-		EventListenerHandlerType                int     `json:"event_listener_handler_type"`
+		UseDoubleQuotesForPath     bool    `json:"use_double_quotes_for_path"`
+		MaxOperationRetryCount     int     `json:"max_operation_retry_count"`
+		RtmpServerInitInterval     float32 `json:"rtmp_server_init_interval"`
+		WatchDogInterval           int     `json:"watch_dog_interval"`
+		WatchDogFailedWaitInterval float32 `json:"watch_dog_failed_wait_interval"`
+		StartTaskWaitForInterval   float32 `json:"start_task_wait_for_interval"`
 	} `json:"ffmpeg"`
 	AiConfig struct {
 		DetectedFolder string `json:"detected_folder"`
