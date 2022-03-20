@@ -14,35 +14,21 @@ type Config struct {
 		Port int    `json:"port"`
 	} `json:"redis"`
 	Jetson struct {
-		ModelName string  `json:"model_name"`
-		Threshold float64 `json:"threshold"`
-		WhiteList []int   `json:"white_list"`
+		ModelName string `json:"model_name"`
 	} `json:"jetson"`
 	Torch struct {
-		ModelName         string  `json:"model_name"`
-		ModelNameSpecific string  `json:"model_name_specific"`
-		Threshold         float64 `json:"threshold"`
-		WhiteList         []int   `json:"white_list"`
+		ModelName         string `json:"model_name"`
+		ModelNameSpecific string `json:"model_name_specific"`
 	} `json:"torch"`
 	Tensorflow struct {
-		ModelName   string  `json:"model_name"`
-		Threshold   float64 `json:"threshold"`
-		WhiteList   []int   `json:"white_list"`
-		CacheFolder string  `json:"cache_folder"`
+		ModelName   string `json:"model_name"`
+		CacheFolder string `json:"cache_folder"`
 	} `json:"tensorflow"`
 	OnceDetector struct {
 		ImagehashThreshold int     `json:"imagehash_threshold"`
 		PsnrThreshold      float64 `json:"psnr_threshold"`
 		SsimThreshold      float64 `json:"ssim_threshold"`
 	} `json:"once_detector"`
-	Handler struct {
-		SaveImageFolderPath string `json:"save_image_folder_path"`
-		SaveImageExtension  string `json:"save_image_extension"`
-		ShowImageWaitKey    int    `json:"show_image_wait_key"`
-		ShowImageCaption    bool   `json:"show_image_caption"`
-		ShowImageFullscreen bool   `json:"show_image_fullscreen"`
-		ReadServiceOverlay  bool   `json:"read_service_overlay"`
-	} `json:"handler"`
 	SourceReader struct {
 		Fps        int `json:"fps"`
 		BufferSize int `json:"buffer_size"`
@@ -63,6 +49,7 @@ type Config struct {
 		StartTaskWaitForInterval   float32 `json:"start_task_wait_for_interval"`
 	} `json:"ffmpeg"`
 	AiConfig struct {
-		DetectedFolder string `json:"detected_folder"`
+		ReadServiceOverlay bool   `json:"read_service_overlay"`
+		DetectedFolder     string `json:"detected_folder"`
 	} `json:"ai"`
 }
