@@ -16,19 +16,20 @@ type HeartbeatRepository struct {
 }
 
 func DatetimeNow(t *time.Time) string {
+	sep := "_"
 	var sb strings.Builder
 	sb.WriteString(strconv.Itoa(t.Year()))
-	sb.WriteString("-")
+	sb.WriteString(sep)
 	sb.WriteString(strconv.Itoa(int(t.Month())))
-	sb.WriteString("-")
+	sb.WriteString(sep)
 	sb.WriteString(strconv.Itoa(t.Day()))
-	sb.WriteString("-")
+	sb.WriteString(sep)
 	sb.WriteString(strconv.Itoa(t.Hour()))
-	sb.WriteString("-")
+	sb.WriteString(sep)
 	sb.WriteString(strconv.Itoa(t.Minute()))
-	sb.WriteString("-")
+	sb.WriteString(sep)
 	sb.WriteString(strconv.Itoa(t.Second()))
-	sb.WriteString("-")
+	sb.WriteString(sep)
 	sb.WriteString(strconv.Itoa(t.Nanosecond()))
 
 	return sb.String()
