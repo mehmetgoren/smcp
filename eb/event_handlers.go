@@ -2,33 +2,21 @@ package eb
 
 import (
 	"encoding/base64"
-	"fmt"
 	"github.com/go-redis/redis/v8"
 	"io/ioutil"
 	"log"
-	"runtime/debug"
 	"smcp/disk"
 	"smcp/gdrive"
+	"smcp/models"
 	"smcp/tb"
 	"smcp/utils"
+	"smcp/vc"
 	"strings"
 
 	"gopkg.in/tucnak/telebot.v2"
 )
 
-func handlePanic() {
-	if r := recover(); r != nil {
-		fmt.Println("RECOVER", r)
-		debug.PrintStack()
-	}
-}
-
-type DetectedImage struct {
-	FileName    string  `json:"file_name"`
-	Base64Image *string `json:"base64_image"`
-}
-
-// EventHandler needs desperately generics
+// EventHandler desperately needs generics
 type EventHandler interface {
 	Handle(event *redis.Message) (interface{}, error)
 }
@@ -38,12 +26,13 @@ type DiskEventHandler struct {
 }
 
 func (d *DiskEventHandler) Handle(event *redis.Message) (interface{}, error) {
-	defer handlePanic()
+	defer utils.HandlePanic()
+	provider := disk.CurrentTimeIndexedFolderInfoProvider{}
 
-	var de = DetectedImage{}
+	var de = models.DetectedImage{}
 	utils.DeserializeJson(event.Payload, &de)
 
-	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(*de.Base64Image))
+	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(de.Base64Image))
 	defer ioutil.NopCloser(reader)
 	fileBytes, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -51,15 +40,28 @@ func (d *DiskEventHandler) Handle(event *redis.Message) (interface{}, error) {
 		return nil, err
 	}
 
-	fileFullPath, err := d.FolderManager.SaveFile(de.FileName, fileBytes)
+	fileName := de.CreateFileName()
+	fileFullPath, err := d.FolderManager.SaveFile(provider, fileName, fileBytes)
 	if err != nil {
 		log.Println("DiskEventHandler: Saving base64 file error: " + err.Error())
 		return nil, err
 	}
 
-	log.Println("DiskEventHandler: image saved successfully as " + de.FileName)
+	log.Println("DiskEventHandler: image saved successfully as " + fileName)
 
 	return fileFullPath, nil
+}
+
+type VideoClipsEventHandler struct {
+	Connection *redis.Client
+}
+
+func (v *VideoClipsEventHandler) Handle(event *redis.Message) (interface{}, error) {
+	defer utils.HandlePanic()
+	rep := vc.DetectedObjectQueueRepository{Connection: v.Connection}
+	rep.Add(&event.Payload)
+
+	return true, nil
 }
 
 type TelegramEventHandler struct {
@@ -67,17 +69,18 @@ type TelegramEventHandler struct {
 }
 
 func (t *TelegramEventHandler) Handle(event *redis.Message) (interface{}, error) {
-	defer handlePanic()
+	defer utils.HandlePanic()
 
-	var de = DetectedImage{}
+	var de = models.DetectedImage{}
 	utils.DeserializeJson(event.Payload, &de)
 
-	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(*de.Base64Image))
+	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(de.Base64Image))
 	defer ioutil.NopCloser(reader)
 
+	fileName := de.CreateFileName()
 	tbFile := telebot.FromReader(reader)
-	tbFile.UniqueID = de.FileName
-	tbPhoto := &telebot.Photo{File: tbFile, Caption: de.FileName}
+	tbFile.UniqueID = fileName
+	tbPhoto := &telebot.Photo{File: tbFile, Caption: fileName}
 
 	users := t.Repository.GetAllUsers()
 	for _, user := range users {
@@ -88,7 +91,7 @@ func (t *TelegramEventHandler) Handle(event *redis.Message) (interface{}, error)
 		}
 	}
 
-	log.Println("TelegramEventHandler: image send successfully as " + de.FileName + " the message is " + de.FileName)
+	log.Println("TelegramEventHandler: image send successfully as " + fileName + " the message is " + fileName)
 
 	return nil, nil
 }
@@ -98,12 +101,12 @@ type GdriveEventHandler struct {
 }
 
 func (g *GdriveEventHandler) Handle(event *redis.Message) (interface{}, error) {
-	defer handlePanic()
+	defer utils.HandlePanic()
 
-	var de = DetectedImage{}
+	var de = models.DetectedImage{}
 	utils.DeserializeJson(event.Payload, &de)
 
-	file, err := g.UploadImage(de.FileName, de.Base64Image)
+	file, err := g.UploadImage(de.CreateFileName(), &de.Base64Image)
 	if err != nil {
 		log.Println("GdriveEventHandler: An error occurred during the handling image uploading to google drive")
 		return nil, err

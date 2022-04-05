@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"log"
 	"os"
 	"smcp/disk"
 	"smcp/eb"
 	"smcp/reps"
+	"smcp/utils"
+	"smcp/vc"
 	"strconv"
-
-	"github.com/go-redis/redis/v8"
 )
 
 const (
@@ -39,6 +40,8 @@ func createServiceRepository(client *redis.Client) *reps.ServiceRepository {
 }
 
 func main() {
+	defer utils.HandlePanic()
+
 	host := os.Getenv("REDIS_HOST")
 	fmt.Println("Redis host: ", host)
 	if len(host) == 0 {
@@ -69,9 +72,14 @@ func main() {
 	config, _ := configRep.GetConfig()
 	handlerList := make([]eb.EventHandler, 0)
 	var diskHandler = eb.DiskEventHandler{}
-	diskHandler.FolderManager = &disk.FolderManager{SmartMachineFolderPath: config.AiConfig.DetectedFolder}
+
+	diskHandler.FolderManager = &disk.FolderManager{RootFolderPath: config.AiConfig.DetectedFolder}
 	diskHandler.FolderManager.Redis = redisClient
 	handlerList = append(handlerList, &diskHandler)
+
+	//detection series handler
+	var dsHandler = eb.VideoClipsEventHandler{Connection: redisClient}
+	handlerList = append(handlerList, &dsHandler)
 
 	//telegramBotClient, botErr := tb.CreateTelegramBot(&rep)
 	//if botErr != nil {
@@ -88,10 +96,17 @@ func main() {
 	//var gHandler = &eb.GdriveEventHandler{FolderManager: fm}
 	//handlerList = append(handlerList, gHandler)
 
+	//starts video clips processor
+	dsRep := vc.DetectedObjectQueueRepository{Connection: redisClient}
+	streamRep := reps.StreamRepository{Connection: redisClient}
+	vcp := vc.VideoClipProcessor{Config: config, DoRep: &dsRep, StreamRep: &streamRep}
+	go vcp.Start()
+	//ends video clips processor
+
 	var handler = &eb.ComboEventHandler{
 		EventHandlers: handlerList,
 	}
 
-	var e = eb.EventBus{Connection: redisClient, Channel: "detect_service"}
+	var e = eb.EventBus{PubSubConnection: createRedisClient(host, port, EVENTBUS), Channel: "detect_service"}
 	e.Subscribe(handler)
 }

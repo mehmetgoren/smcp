@@ -51,5 +51,6 @@ type Config struct {
 	AiConfig struct {
 		ReadServiceOverlay bool   `json:"read_service_overlay"`
 		DetectedFolder     string `json:"detected_folder"`
+		VideoClipDuration  int    `json:"video_clip_duration"`
 	} `json:"ai"`
 }

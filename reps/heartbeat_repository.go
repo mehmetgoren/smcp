@@ -4,8 +4,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"golang.org/x/net/context"
 	"log"
-	"strconv"
-	"strings"
+	"smcp/utils"
 	"time"
 )
 
@@ -13,26 +12,6 @@ type HeartbeatRepository struct {
 	Client      *redis.Client
 	TimeSecond  int64
 	ServiceName string
-}
-
-func DatetimeNow(t *time.Time) string {
-	sep := "_"
-	var sb strings.Builder
-	sb.WriteString(strconv.Itoa(t.Year()))
-	sb.WriteString(sep)
-	sb.WriteString(strconv.Itoa(int(t.Month())))
-	sb.WriteString(sep)
-	sb.WriteString(strconv.Itoa(t.Day()))
-	sb.WriteString(sep)
-	sb.WriteString(strconv.Itoa(t.Hour()))
-	sb.WriteString(sep)
-	sb.WriteString(strconv.Itoa(t.Minute()))
-	sb.WriteString(sep)
-	sb.WriteString(strconv.Itoa(t.Second()))
-	sb.WriteString(sep)
-	sb.WriteString(strconv.Itoa(t.Nanosecond()))
-
-	return sb.String()
 }
 
 func (h *HeartbeatRepository) Start() {
@@ -43,7 +22,7 @@ func (h *HeartbeatRepository) Start() {
 		select {
 		case timeTicker := <-ticker.C:
 			heartbeatObj := map[string]interface{}{
-				"heartbeat": DatetimeNow(&timeTicker),
+				"heartbeat": utils.TimeToString(timeTicker, true),
 			}
 			h.Client.HSet(context.Background(), "services:"+h.ServiceName, heartbeatObj)
 			log.Println("Heartbeat was beaten at " + timeTicker.Format(time.ANSIC))

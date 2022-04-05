@@ -7,16 +7,16 @@ import (
 )
 
 type EventBus struct {
-	Connection *redis.Client
-	Channel    string
+	PubSubConnection *redis.Client
+	Channel          string
 }
 
 func (eb *EventBus) Publish(event interface{}) error {
-	return eb.Connection.Publish(context.Background(), eb.Channel, event).Err()
+	return eb.PubSubConnection.Publish(context.Background(), eb.Channel, event).Err()
 }
 
 func (eb *EventBus) Subscribe(handler EventHandler) error {
-	pong, err := eb.Connection.Ping(context.Background()).Result()
+	pong, err := eb.PubSubConnection.Ping(context.Background()).Result()
 	if err != nil {
 		log.Println("ping has been failed, exiting now...")
 		return err
@@ -26,7 +26,7 @@ func (eb *EventBus) Subscribe(handler EventHandler) error {
 	log.Println("redis pubsub is listening for " + eb.Channel)
 
 	channel := eb.Channel
-	subscribe := eb.Connection.Subscribe(context.Background(), channel)
+	subscribe := eb.PubSubConnection.Subscribe(context.Background(), channel)
 	subscriptions := subscribe.ChannelWithSubscriptions(context.Background(), 1)
 	for {
 		select {

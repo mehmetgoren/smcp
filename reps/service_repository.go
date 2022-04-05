@@ -5,6 +5,7 @@ import (
 	"golang.org/x/net/context"
 	"os"
 	"runtime"
+	"smcp/utils"
 	"time"
 )
 
@@ -33,7 +34,6 @@ func getKey(serviceName string) string {
 }
 
 func (r *ServiceRepository) Add(serviceName string) (int64, error) {
-	now := time.Now()
 	host, _ := os.Hostname()
 	sm := ServiceModel{
 		Name:            serviceName,
@@ -47,7 +47,7 @@ func (r *ServiceRepository) Add(serviceName string) (int64, error) {
 		CpuCount:        runtime.NumCPU(),
 		Ram:             "unknown",
 		Pid:             os.Getpid(),
-		CreatedAt:       DatetimeNow(&now),
+		CreatedAt:       utils.TimeToString(time.Now(), true),
 		Heartbeat:       "",
 	}
 
