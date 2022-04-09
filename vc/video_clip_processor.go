@@ -25,11 +25,11 @@ type VideoClipProcessor struct {
 var pathPrefix = "vcs"
 
 func (v *VideoClipProcessor) getRootPath(sourceId string) string {
-	return path.Join(v.Config.Path.Record, sourceId, pathPrefix)
+	return path.Join(utils.GetRecordFolderPath(v.Config), sourceId, pathPrefix)
 }
 
 func (v *VideoClipProcessor) getTempRootPath(sourceId string) string {
-	return path.Join(v.Config.Path.Record, sourceId, pathPrefix, "temp")
+	return path.Join(utils.GetRecordFolderPath(v.Config), sourceId, pathPrefix, "temp")
 }
 
 var emptyFileInfos = make([]fs.FileInfo, 0)
@@ -50,7 +50,7 @@ func (v *VideoClipProcessor) getTempVideoFolders(sourceId string) []fs.FileInfo 
 func (v *VideoClipProcessor) createVideoClipInfos() ([]*VideoClipJsonObject, error) {
 	hasDetectionVideoClips := make([]*VideoClipJsonObject, 0)
 
-	duration := v.Config.AiConfig.VideoClipDuration
+	duration := v.Config.Ai.VideoClipDuration
 	allDetectedObjects, _ := v.DoRep.PopAll()
 	streams, _ := v.StreamRep.GetAll()
 	for _, stream := range streams {
@@ -123,7 +123,7 @@ func (v *VideoClipProcessor) Start() {
 
 	s := gocron.NewScheduler(time.UTC)
 
-	s.Every(v.Config.AiConfig.VideoClipDuration * 2).Seconds().Do(v.check)
+	s.Every(v.Config.Ai.VideoClipDuration * 2).Seconds().Do(v.check)
 
 	s.StartAsync()
 }

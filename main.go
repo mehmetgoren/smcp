@@ -7,6 +7,7 @@ import (
 	"os"
 	"smcp/disk"
 	"smcp/eb"
+	"smcp/models"
 	"smcp/reps"
 	"smcp/utils"
 	"smcp/vc"
@@ -27,8 +28,8 @@ func createRedisClient(host string, port int, db int) *redis.Client {
 	})
 }
 
-func createHeartbeatRepository(client *redis.Client, serviceName string) *reps.HeartbeatRepository {
-	var heartbeatRepository = reps.HeartbeatRepository{Client: client, TimeSecond: 10, ServiceName: serviceName}
+func createHeartbeatRepository(client *redis.Client, serviceName string, config *models.Config) *reps.HeartbeatRepository {
+	var heartbeatRepository = reps.HeartbeatRepository{Client: client, TimeSecond: int64(config.General.HeartbeatInterval), ServiceName: serviceName}
 
 	return &heartbeatRepository
 }
@@ -56,8 +57,11 @@ func main() {
 	redisClient := createRedisClient(host, port, MAIN)
 	//var rep = createRedisRepository(&redisOptions)
 
+	var configRep = reps.ConfigRepository{Connection: redisClient}
+	config, _ := configRep.GetConfig()
+
 	serviceName := "cloud_integration_service"
-	heartbeat := createHeartbeatRepository(redisClient, serviceName)
+	heartbeat := createHeartbeatRepository(redisClient, serviceName, config)
 	go heartbeat.Start()
 
 	serviceRepository := createServiceRepository(redisClient)
@@ -68,12 +72,10 @@ func main() {
 		}
 	}()
 
-	var configRep = reps.ConfigRepository{Connection: redisClient}
-	config, _ := configRep.GetConfig()
 	handlerList := make([]eb.EventHandler, 0)
 	var diskHandler = eb.DiskEventHandler{}
 
-	diskHandler.FolderManager = &disk.FolderManager{RootFolderPath: config.AiConfig.DetectedFolder}
+	diskHandler.FolderManager = &disk.FolderManager{RootFolderPath: utils.GetOdFolderPath(config)}
 	diskHandler.FolderManager.Redis = redisClient
 	handlerList = append(handlerList, &diskHandler)
 

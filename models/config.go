@@ -1,14 +1,11 @@
 package models
 
 type Config struct {
-	DeviceConfig struct {
+	Device struct {
 		DeviceName     string `json:"device_name"`
 		DeviceType     int    `json:"device_type"`
 		DeviceServices []int  `json:"device_services"`
 	} `json:"device"`
-	HeartbeatConfig struct {
-		Interval int `json:"interval"`
-	} `json:"heartbeat"`
 	Redis struct {
 		Host string `json:"host"`
 		Port int    `json:"port"`
@@ -35,11 +32,10 @@ type Config struct {
 		MaxRetry   int `json:"max_retry"`
 		MaxRetryIn int `json:"max_retry_in"`
 	} `json:"source_reader"`
-	Path struct {
-		Stream string `json:"stream"`
-		Record string `json:"record"`
-		Read   string `json:"read"`
-	} `json:"path"`
+	General struct {
+		RootFolderPath    string `json:"root_folder_path"`
+		HeartbeatInterval int    `json:"heartbeat_interval"`
+	} `json:"general"`
 	FFmpeg struct {
 		UseDoubleQuotesForPath     bool    `json:"use_double_quotes_for_path"`
 		MaxOperationRetryCount     int     `json:"max_operation_retry_count"`
@@ -48,9 +44,10 @@ type Config struct {
 		WatchDogFailedWaitInterval float32 `json:"watch_dog_failed_wait_interval"`
 		StartTaskWaitForInterval   float32 `json:"start_task_wait_for_interval"`
 	} `json:"ffmpeg"`
-	AiConfig struct {
-		ReadServiceOverlay bool   `json:"read_service_overlay"`
-		DetectedFolder     string `json:"detected_folder"`
-		VideoClipDuration  int    `json:"video_clip_duration"`
+	Ai struct {
+		ReadServiceOverlay      bool    `json:"read_service_overlay"`
+		VideoClipDuration       int     `json:"video_clip_duration"`
+		FaceRecogMtcnnThreshold float32 `json:"face_recog_mtcnn_threshold"`
+		FaceRecogProbThreshold  float32 `json:"face_recog_prob_threshold"`
 	} `json:"ai"`
 }
