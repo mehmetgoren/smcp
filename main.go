@@ -5,7 +5,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"log"
 	"os"
-	"smcp/disk"
 	"smcp/eb"
 	"smcp/models"
 	"smcp/reps"
@@ -55,6 +54,7 @@ func main() {
 		port = 6379
 	}
 	redisClient := createRedisClient(host, port, MAIN)
+	utils.SetPool(redisClient)
 	//var rep = createRedisRepository(&redisOptions)
 
 	var configRep = reps.ConfigRepository{Connection: redisClient}
@@ -73,15 +73,13 @@ func main() {
 	}()
 
 	handlerList := make([]eb.EventHandler, 0)
-	var diskHandler = eb.DiskEventHandler{}
-
-	diskHandler.FolderManager = &disk.FolderManager{RootFolderPath: utils.GetOdFolderPath(config)}
-	diskHandler.FolderManager.Redis = redisClient
+	ohr := &reps.OdHandlerRepository{Config: config}
+	var diskHandler = eb.DiskEventHandler{Ohr: ohr}
 	handlerList = append(handlerList, &diskHandler)
 
 	//detection series handler
-	var dsHandler = eb.VideoClipsEventHandler{Connection: redisClient}
-	handlerList = append(handlerList, &dsHandler)
+	var vch = eb.VideoClipsEventHandler{Connection: redisClient}
+	handlerList = append(handlerList, &vch)
 
 	//telegramBotClient, botErr := tb.CreateTelegramBot(&rep)
 	//if botErr != nil {
@@ -98,12 +96,12 @@ func main() {
 	//var gHandler = &eb.GdriveEventHandler{FolderManager: fm}
 	//handlerList = append(handlerList, gHandler)
 
-	//starts video clips processor
-	dsRep := vc.DetectedObjectQueueRepository{Connection: redisClient}
+	// starts video clips processor
+	odqRep := reps.ObjectDetectionQueueRepository{Connection: redisClient}
 	streamRep := reps.StreamRepository{Connection: redisClient}
-	vcp := vc.VideoClipProcessor{Config: config, DoRep: &dsRep, StreamRep: &streamRep}
+	vcp := vc.VideoClipProcessor{Config: config, OdqRep: &odqRep, StreamRep: &streamRep}
 	go vcp.Start()
-	//ends video clips processor
+	// ends video clips processor
 
 	var handler = &eb.ComboEventHandler{
 		EventHandlers: handlerList,

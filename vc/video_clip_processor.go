@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"smcp/disk"
 	"smcp/models"
 	"smcp/reps"
 	"smcp/utils"
@@ -18,24 +17,35 @@ import (
 
 type VideoClipProcessor struct {
 	Config    *models.Config
-	DoRep     *DetectedObjectQueueRepository
+	OdqRep    *reps.ObjectDetectionQueueRepository
 	StreamRep *reps.StreamRepository
 }
 
-var pathPrefix = "vcs"
-
-func (v *VideoClipProcessor) getRootPath(sourceId string) string {
-	return path.Join(utils.GetRecordFolderPath(v.Config), sourceId, pathPrefix)
+func (v *VideoClipProcessor) getTempRecordPath(sourceId string) string {
+	return path.Join(utils.GetRecordPath(v.Config), sourceId, "temp")
 }
 
-func (v *VideoClipProcessor) getTempRootPath(sourceId string) string {
-	return path.Join(utils.GetRecordFolderPath(v.Config), sourceId, pathPrefix, "temp")
+func (v *VideoClipProcessor) getIndexedSourceVideosPath(clip *VideoClipObject) string {
+	rootPath := utils.GetOdVideosPathBySourceId(v.Config, clip.SourceId)
+	ti := reps.TimeIndex{}
+	ti.SetValuesFrom(&clip.CreatedAtTime)
+	return ti.GetIndexedPath(rootPath)
 }
+
+func (v *VideoClipProcessor) getIndexedSourceDataPath(clip *VideoClipObject) string {
+	rootPath := path.Join(utils.GetOdDataPathBySourceId(v.Config, clip.SourceId))
+	ti := reps.TimeIndex{}
+	ti.SetValuesFrom(&clip.CreatedAtTime)
+	return ti.GetIndexedPath(rootPath)
+}
+
+var multiplier = 5
+var minFileCount = 3
 
 var emptyFileInfos = make([]fs.FileInfo, 0)
 
 func (v *VideoClipProcessor) getTempVideoFolders(sourceId string) []fs.FileInfo {
-	tempRootPath := v.getTempRootPath(sourceId)
+	tempRootPath := v.getTempRecordPath(sourceId)
 	videoFiles, _ := ioutil.ReadDir(tempRootPath)
 	if len(videoFiles) < 2 {
 		log.Println("no video clips found on the temp folder")
@@ -43,15 +53,15 @@ func (v *VideoClipProcessor) getTempVideoFolders(sourceId string) []fs.FileInfo 
 	}
 	//remove the last one
 	clipsCount := len(videoFiles)
-	videoFiles = videoFiles[0 : clipsCount-1]
+	videoFiles = videoFiles[0 : clipsCount-minFileCount]
 	return videoFiles
 }
 
-func (v *VideoClipProcessor) createVideoClipInfos() ([]*VideoClipJsonObject, error) {
-	hasDetectionVideoClips := make([]*VideoClipJsonObject, 0)
+func (v *VideoClipProcessor) createVideoClipInfos() ([]*VideoClipObject, error) {
+	hasDetectionVideoClips := make([]*VideoClipObject, 0)
 
 	duration := v.Config.Ai.VideoClipDuration
-	allDetectedObjects, _ := v.DoRep.PopAll()
+	allDetectedObjects, _ := v.OdqRep.PopAll()
 	streams, _ := v.StreamRep.GetAll()
 	for _, stream := range streams {
 		if !stream.VideoClipEnabled {
@@ -61,24 +71,24 @@ func (v *VideoClipProcessor) createVideoClipInfos() ([]*VideoClipJsonObject, err
 		tempVideoFiles := v.getTempVideoFolders(sourceId)
 		for _, tempVideoFi := range tempVideoFiles {
 			tempFileName := tempVideoFi.Name()
-			vci := VideoClipJsonObject{}
+			vci := VideoClipObject{}
+			vci.SourceId = sourceId
+			vci.ObjectDetectionModels = make([]*models.ObjectDetectionModel, 0)
 			vci.FileName = tempFileName
 			vci.Duration = duration
 			vci.SetupDateTimes()
-			deleteVideoFile := true
 			for _, detectedObject := range allDetectedObjects {
-				createdAtTime := utils.StringToTime(detectedObject.CreatedAt, false)
+				createdAtTime := utils.StringToTime(detectedObject.CreatedAt)
 				if vci.IsInTimeSpan(createdAtTime) {
-					vci.DetectedImage = detectedObject
-					hasDetectionVideoClips = append(hasDetectionVideoClips, &vci)
-					deleteVideoFile = false
-					break
+					vci.ObjectDetectionModels = append(vci.ObjectDetectionModels, detectedObject)
 				}
 			}
 
-			if deleteVideoFile {
+			if len(vci.ObjectDetectionModels) > 0 {
+				hasDetectionVideoClips = append(hasDetectionVideoClips, &vci)
+			} else {
 				//delete the non-object detection containing video files
-				tempRootPath := v.getTempRootPath(sourceId)
+				tempRootPath := v.getTempRecordPath(sourceId)
 				os.Remove(path.Join(tempRootPath, tempFileName))
 				log.Println("a temp video file deleted: " + tempFileName)
 			}
@@ -88,25 +98,60 @@ func (v *VideoClipProcessor) createVideoClipInfos() ([]*VideoClipJsonObject, err
 	return hasDetectionVideoClips, nil
 }
 
-func (v *VideoClipProcessor) move(clips []*VideoClipJsonObject) error {
+func (v *VideoClipProcessor) move(clips []*VideoClipObject) error {
 	defer utils.HandlePanic()
 
 	for _, clip := range clips {
-		fm := &disk.FolderManager{Redis: v.DoRep.Connection, RootFolderPath: v.getRootPath(clip.DetectedImage.SourceId)}
 		//move video clips' to persistent folder
-		oldLocation := path.Join(v.getTempRootPath(clip.DetectedImage.SourceId), clip.FileName)
-		provider := disk.FileNameIndexedFolderInfoProvider{FileName: clip.FileName}
-		folderPath, _ := fm.CreateFolderIfNotExists(provider) //creates year/month/day/hour folder
-		newLocation := path.Join(folderPath, clip.FileName)
+		oldLocation := path.Join(v.getTempRecordPath(clip.SourceId), clip.FileName)
+
+		indexedSourceVideosPath := v.getIndexedSourceVideosPath(clip)
+		err := utils.CreateDirectoryIfNotExists(indexedSourceVideosPath)
+		if err != nil {
+			log.Println("an error occurred during the creating indexed data directory, ", err)
+			continue
+		}
+		newLocation := path.Join(indexedSourceVideosPath, clip.FileName)
 		os.Rename(oldLocation, newLocation) //moves the short video clip file
 
 		//and also create a json file next to the video clip file for metadata
-		clip.FileName = path.Join(clip.DetectedImage.SourceId, pathPrefix, strings.Replace(newLocation, fm.RootFolderPath, "", -1))
-		videoFileExt := path.Ext(newLocation)
-		jsonFullFileName := strings.Replace(newLocation, videoFileExt, ".json", -1)
-		jsonListBytes, _ := json.Marshal(clip)
-		ioutil.WriteFile(jsonFullFileName, jsonListBytes, 0777)
-		log.Println("a object detected video file has been moved to a indexed folder")
+		indexedSourceDataPath := v.getIndexedSourceDataPath(clip)
+		fileInfos, _ := ioutil.ReadDir(indexedSourceDataPath)
+		for _, fileInfo := range fileInfos {
+			splits := strings.Split(fileInfo.Name(), "_")
+			id := strings.Split(splits[len(splits)-1], ".")[0]
+			odModel := findOdModel(clip.ObjectDetectionModels, id)
+			if odModel == nil {
+				continue // if it doesn't match, do not mutate the file.
+			}
+
+			jsonDataFileName := path.Join(indexedSourceDataPath, fileInfo.Name())
+
+			//read json file
+			fileBytes, _ := ioutil.ReadFile(jsonDataFileName)
+			jo := &models.ObjectDetectionJsonObject{}
+			json.Unmarshal(fileBytes, jo)
+
+			//change the data
+			jo.Video.FileName = strings.Replace(newLocation, v.Config.General.RootFolderPath+"/", "", -1)
+			jo.Video.CreatedAt = clip.CreatedAt
+			jo.Video.LastModifiedAt = clip.LastModified
+			jo.Video.Duration = clip.Duration
+
+			//write json file
+			objectBytes, _ := json.Marshal(jo)
+			ioutil.WriteFile(jsonDataFileName, objectBytes, 0777)
+
+		}
+	}
+	return nil
+}
+
+func findOdModel(list []*models.ObjectDetectionModel, id string) *models.ObjectDetectionModel {
+	for _, item := range list {
+		if item.Id == id {
+			return item
+		}
 	}
 	return nil
 }
@@ -123,7 +168,7 @@ func (v *VideoClipProcessor) Start() {
 
 	s := gocron.NewScheduler(time.UTC)
 
-	s.Every(v.Config.Ai.VideoClipDuration * 2).Seconds().Do(v.check)
+	s.Every(v.Config.Ai.VideoClipDuration * multiplier).Seconds().Do(v.check)
 
 	s.StartAsync()
 }

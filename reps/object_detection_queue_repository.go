@@ -1,4 +1,4 @@
-package vc
+package reps
 
 import (
 	"context"
@@ -7,19 +7,19 @@ import (
 	"smcp/utils"
 )
 
-type DetectedObjectQueueRepository struct {
+type ObjectDetectionQueueRepository struct {
 	Connection *redis.Client
 }
 
-var key = "detectionseries"
+var key = "odseries"
 
-func (d *DetectedObjectQueueRepository) Add(payloadJson *string) error {
+func (d *ObjectDetectionQueueRepository) Add(payloadJson *string) error {
 	_, err := d.Connection.RPush(context.Background(), key, *payloadJson).Result()
 	return err
 }
 
-func (d *DetectedObjectQueueRepository) PopAll() ([]*models.DetectedImage, error) {
-	items := make([]*models.DetectedImage, 0)
+func (d *ObjectDetectionQueueRepository) PopAll() ([]*models.ObjectDetectionModel, error) {
+	items := make([]*models.ObjectDetectionModel, 0)
 	c := d.Connection
 	for true {
 		json, err := c.LPop(context.Background(), key).Result()
@@ -30,7 +30,7 @@ func (d *DetectedObjectQueueRepository) PopAll() ([]*models.DetectedImage, error
 			return nil, err
 		}
 
-		var item = &models.DetectedImage{}
+		var item = &models.ObjectDetectionModel{}
 		utils.DeserializeJson(json, item)
 		items = append(items, item)
 	}
