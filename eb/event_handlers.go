@@ -40,7 +40,7 @@ type VideoClipsEventHandler struct {
 
 func (v *VideoClipsEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
-	rep := reps.ObjectDetectionQueueRepository{Connection: v.Connection}
+	rep := reps.OdQueueRepository{Connection: v.Connection}
 	rep.Add(&event.Payload)
 
 	return true, nil

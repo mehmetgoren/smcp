@@ -17,7 +17,7 @@ import (
 
 type VideoClipProcessor struct {
 	Config    *models.Config
-	OdqRep    *reps.ObjectDetectionQueueRepository
+	OdqRep    *reps.OdQueueRepository
 	StreamRep *reps.StreamRepository
 }
 

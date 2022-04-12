@@ -97,7 +97,7 @@ func main() {
 	//handlerList = append(handlerList, gHandler)
 
 	// starts video clips processor
-	odqRep := reps.ObjectDetectionQueueRepository{Connection: redisClient}
+	odqRep := reps.OdQueueRepository{Connection: redisClient}
 	streamRep := reps.StreamRepository{Connection: redisClient}
 	vcp := vc.VideoClipProcessor{Config: config, OdqRep: &odqRep, StreamRep: &streamRep}
 	go vcp.Start()

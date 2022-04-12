@@ -7,18 +7,18 @@ import (
 	"smcp/utils"
 )
 
-type ObjectDetectionQueueRepository struct {
+type OdQueueRepository struct {
 	Connection *redis.Client
 }
 
 var key = "odseries"
 
-func (d *ObjectDetectionQueueRepository) Add(payloadJson *string) error {
+func (d *OdQueueRepository) Add(payloadJson *string) error {
 	_, err := d.Connection.RPush(context.Background(), key, *payloadJson).Result()
 	return err
 }
 
-func (d *ObjectDetectionQueueRepository) PopAll() ([]*models.ObjectDetectionModel, error) {
+func (d *OdQueueRepository) PopAll() ([]*models.ObjectDetectionModel, error) {
 	items := make([]*models.ObjectDetectionModel, 0)
 	c := d.Connection
 	for true {
