@@ -20,11 +20,11 @@ type EventHandler interface {
 	Handle(event *redis.Message) (interface{}, error)
 }
 
-type DiskEventHandler struct {
+type OdDiskEventHandler struct {
 	Ohr *reps.OdHandlerRepository
 }
 
-func (d *DiskEventHandler) Handle(event *redis.Message) (interface{}, error) {
+func (d *OdDiskEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
 	var de = models.ObjectDetectionModel{}
@@ -34,11 +34,11 @@ func (d *DiskEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	return nil, nil
 }
 
-type VideoClipsEventHandler struct {
+type OdVideoClipsEventHandler struct {
 	Connection *redis.Client
 }
 
-func (v *VideoClipsEventHandler) Handle(event *redis.Message) (interface{}, error) {
+func (v *OdVideoClipsEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 	rep := reps.OdQueueRepository{Connection: v.Connection}
 	rep.Add(&event.Payload)
@@ -46,11 +46,11 @@ func (v *VideoClipsEventHandler) Handle(event *redis.Message) (interface{}, erro
 	return true, nil
 }
 
-type TelegramEventHandler struct {
+type OdTelegramEventHandler struct {
 	*tb.TelegramBotClient
 }
 
-func (t *TelegramEventHandler) Handle(event *redis.Message) (interface{}, error) {
+func (t *OdTelegramEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
 	var de = models.ObjectDetectionModel{}
@@ -78,11 +78,11 @@ func (t *TelegramEventHandler) Handle(event *redis.Message) (interface{}, error)
 	return nil, nil
 }
 
-type GdriveEventHandler struct {
+type OdGdriveEventHandler struct {
 	*gdrive.FolderManager
 }
 
-func (g *GdriveEventHandler) Handle(event *redis.Message) (interface{}, error) {
+func (g *OdGdriveEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
 	var de = models.ObjectDetectionModel{}

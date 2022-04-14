@@ -61,3 +61,15 @@ func CreateDirectoryIfNotExists(directoryPath string) error {
 	}
 	return nil
 }
+
+func getFrPath(config *models.Config) string {
+	return path.Join(config.General.RootFolderPath, "fr")
+}
+
+func GetFrImagesPathBySourceId(config *models.Config, sourceId string) string {
+	return path.Join(getFrPath(config), sourceId, "images")
+}
+
+func GetFrDataPathBySourceId(config *models.Config, sourceId string) string {
+	return path.Join(getFrPath(config), sourceId, "data")
+}

@@ -55,7 +55,6 @@ func main() {
 	}
 	redisClient := createRedisClient(host, port, MAIN)
 	utils.SetPool(redisClient)
-	//var rep = createRedisRepository(&redisOptions)
 
 	var configRep = reps.ConfigRepository{Connection: redisClient}
 	config, _ := configRep.GetConfig()
@@ -72,13 +71,18 @@ func main() {
 		}
 	}()
 
+	go listenOdEventHandlers(redisClient, config, host, port)
+	listenFrEventHandler(config, host, port)
+}
+
+func listenOdEventHandlers(mainConn *redis.Client, config *models.Config, host string, port int) {
 	handlerList := make([]eb.EventHandler, 0)
 	ohr := &reps.OdHandlerRepository{Config: config}
-	var diskHandler = eb.DiskEventHandler{Ohr: ohr}
+	var diskHandler = eb.OdDiskEventHandler{Ohr: ohr}
 	handlerList = append(handlerList, &diskHandler)
 
 	//detection series handler
-	var vch = eb.VideoClipsEventHandler{Connection: redisClient}
+	var vch = eb.OdVideoClipsEventHandler{Connection: mainConn}
 	handlerList = append(handlerList, &vch)
 
 	//telegramBotClient, botErr := tb.CreateTelegramBot(&rep)
@@ -86,19 +90,19 @@ func main() {
 	//	log.Println("telegram bot connection couldn't be created, the operation is now exiting")
 	//	return
 	//}
-	//var tbHandler eb.EventHandler = &eb.TelegramEventHandler{TelegramBotClient: &telegramBotClient}
+	//var tbHandler eb.EventHandler = &eb.OdTelegramEventHandler{TelegramBotClient: &telegramBotClient}
 	//handlerList = append(handlerList, tbHandler)
 
 	//var fm = &gdrive.FolderManager{}
 	//fm.Redis = redisClient
 	//fm.Gdrive = &gdrive.GdriveClient{}
 	//fm.Gdrive.Repository = &rep
-	//var gHandler = &eb.GdriveEventHandler{FolderManager: fm}
+	//var gHandler = &eb.OdGdriveEventHandler{FolderManager: fm}
 	//handlerList = append(handlerList, gHandler)
 
 	// starts video clips processor
-	odqRep := reps.OdQueueRepository{Connection: redisClient}
-	streamRep := reps.StreamRepository{Connection: redisClient}
+	odqRep := reps.OdQueueRepository{Connection: mainConn}
+	streamRep := reps.StreamRepository{Connection: mainConn}
 	vcp := vc.VideoClipProcessor{Config: config, OdqRep: &odqRep, StreamRep: &streamRep}
 	go vcp.Start()
 	// ends video clips processor
@@ -107,6 +111,20 @@ func main() {
 		EventHandlers: handlerList,
 	}
 
-	var e = eb.EventBus{PubSubConnection: createRedisClient(host, port, EVENTBUS), Channel: "detect_service"}
+	var e = eb.EventBus{PubSubConnection: createRedisClient(host, port, EVENTBUS), Channel: "od_service"}
+	e.Subscribe(handler)
+}
+
+func listenFrEventHandler(config *models.Config, host string, port int) {
+	handlerList := make([]eb.EventHandler, 0)
+	fhr := &reps.FrHandlerRepository{Config: config}
+	var diskHandler = eb.FrDiskEventHandler{Fhr: fhr}
+	handlerList = append(handlerList, &diskHandler)
+
+	var handler = &eb.ComboEventHandler{
+		EventHandlers: handlerList,
+	}
+
+	var e = eb.EventBus{PubSubConnection: createRedisClient(host, port, EVENTBUS), Channel: "fr_service"}
 	e.Subscribe(handler)
 }
