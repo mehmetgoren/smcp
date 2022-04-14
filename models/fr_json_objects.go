@@ -11,6 +11,6 @@ type FaceRecognitionJsonBaseObject struct {
 }
 
 type FaceRecognitionJsonObject struct {
-	FaceRecognition *FaceRecognitionJsonBaseObject `json:"object_detection"`
+	FaceRecognition *FaceRecognitionJsonBaseObject `json:"face_detection"`
 	Video           *VideoClipJsonObject           `json:"video"`
 }
