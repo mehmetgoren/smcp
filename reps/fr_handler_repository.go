@@ -56,7 +56,7 @@ func (o *FrHandlerRepository) Save(fr *models.FaceRecognitionModel) error {
 	}
 	//write a file as json
 	baseObj := models.FaceRecognitionJsonBaseObject{Id: fr.Id, SourceId: fr.SourceId, CreatedAt: fr.CreatedAt,
-		DetectedFaces: fr.DetectedFaces, VideoClipEnabled: fr.VideoClipEnabled}
+		DetectedFaces: fr.DetectedFaces, AiClipEnabled: fr.AiClipEnabled}
 	baseObj.ImageFileName = strings.Replace(fullFileNameImage, o.Config.General.RootFolderPath+"/", "", -1)
 	fullFileNameData := path.Join(fullPathData, fr.CreateFileName()+".json")
 	baseObj.DataFileName = strings.Replace(fullFileNameData, o.Config.General.RootFolderPath+"/", "", -1)

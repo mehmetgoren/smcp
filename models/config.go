@@ -37,12 +37,14 @@ type Config struct {
 		HeartbeatInterval int    `json:"heartbeat_interval"`
 	} `json:"general"`
 	FFmpeg struct {
-		UseDoubleQuotesForPath     bool    `json:"use_double_quotes_for_path"`
-		MaxOperationRetryCount     int     `json:"max_operation_retry_count"`
-		RtmpServerInitInterval     float32 `json:"rtmp_server_init_interval"`
-		WatchDogInterval           int     `json:"watch_dog_interval"`
-		WatchDogFailedWaitInterval float32 `json:"watch_dog_failed_wait_interval"`
-		StartTaskWaitForInterval   float32 `json:"start_task_wait_for_interval"`
+		UseDoubleQuotesForPath         bool    `json:"use_double_quotes_for_path"`
+		MaxOperationRetryCount         int     `json:"max_operation_retry_count"`
+		RtmpServerInitInterval         float32 `json:"rtmp_server_init_interval"`
+		WatchDogInterval               int     `json:"watch_dog_interval"`
+		WatchDogFailedWaitInterval     float32 `json:"watch_dog_failed_wait_interval"`
+		StartTaskWaitForInterval       float32 `json:"start_task_wait_for_interval"`
+		RecordConcatLimit              int     `json:"record_concat_limit"`
+		RecordVideoFileIndexerInterval int     `json:"record_video_file_indexer_interval"`
 	} `json:"ffmpeg"`
 	Ai struct {
 		ReadServiceOverlay      bool    `json:"read_service_overlay"`

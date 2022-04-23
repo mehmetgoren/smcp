@@ -38,8 +38,10 @@ type StreamModel struct {
 	SnapshotWidth     int  `json:"snapshot_width" redis:"snapshot_width"`
 	SnapshotHeight    int  `json:"snapshot_height" redis:"snapshot_height"`
 
-	VideoClipEnabled bool `json:"video_clip_enabled" redis:"video_clip_enabled"`
+	AiClipEnabled bool   `json:"ai_clip_enabled" redis:"ai_clip_enabled"`
+	AiClipPid     int    `json:"ai_clip_pid" redis:"ai_clip_pid"`
+	AiClipArgs    string `json:"ai_clip_args" redis:"ai_clip_args"`
 
-	HlsOutputPath          string `json:"hls_output_path" redis:"hls_output_path"`
-	RecordOutputFolderPath string `json:"record_output_folder_path" redis:"record_output_folder_path"`
+	ConcatDemuxerPid  int    `json:"concat_demuxer_pid" redis:"concat_demuxer_pid"`
+	ConcatDemuxerArgs string `json:"concat_demuxer_args" redis:"concat_demuxer_args"`
 }

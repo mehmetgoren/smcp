@@ -7,12 +7,12 @@ type DetectedObject struct {
 }
 
 type ObjectDetectionModel struct {
-	Id               string            `json:"id"`
-	SourceId         string            `json:"source_id"`
-	CreatedAt        string            `json:"created_at"`
-	DetectedObjects  []*DetectedObject `json:"detected_objects"`
-	Base64Image      string            `json:"base64_image"`
-	VideoClipEnabled bool              `json:"video_clip_enabled"`
+	Id              string            `json:"id"`
+	SourceId        string            `json:"source_id"`
+	CreatedAt       string            `json:"created_at"`
+	DetectedObjects []*DetectedObject `json:"detected_objects"`
+	Base64Image     string            `json:"base64_image"`
+	AiClipEnabled   bool              `json:"ai_clip_enabled"`
 }
 
 func (d *ObjectDetectionModel) CreateFileName() string {

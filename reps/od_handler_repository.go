@@ -58,7 +58,7 @@ func (o *OdHandlerRepository) Save(de *models.ObjectDetectionModel) error {
 	}
 	//write a file as json
 	baseObj := models.ObjectDetectionJsonBaseObject{Id: de.Id, SourceId: de.SourceId, CreatedAt: de.CreatedAt,
-		DetectedObjects: de.DetectedObjects, VideoClipEnabled: de.VideoClipEnabled}
+		DetectedObjects: de.DetectedObjects, AiClipEnabled: de.AiClipEnabled}
 	baseObj.ImageFileName = strings.Replace(fullFileNameImage, o.Config.General.RootFolderPath+"/", "", -1)
 	fullFileNameData := path.Join(fullPathData, de.CreateFileName()+".json")
 	baseObj.DataFileName = strings.Replace(fullFileNameData, o.Config.General.RootFolderPath+"/", "", -1)

@@ -21,8 +21,8 @@ type VideoClipProcessor struct {
 	StreamRep *reps.StreamRepository
 }
 
-func (v *VideoClipProcessor) getTempRecordPath(sourceId string) string {
-	return path.Join(utils.GetRecordPath(v.Config), sourceId, "temp")
+func (v *VideoClipProcessor) getAiRecordPath(sourceId string) string {
+	return path.Join(utils.GetRecordPath(v.Config), sourceId, "ai")
 }
 
 func (v *VideoClipProcessor) getIndexedSourceVideosPath(clip *VideoClipObject) string {
@@ -40,15 +40,15 @@ func (v *VideoClipProcessor) getIndexedSourceDataPath(clip *VideoClipObject) str
 }
 
 var multiplier = 5
-var minFileCount = 3
+var minFileCount = 2
 
 var emptyFileInfos = make([]fs.FileInfo, 0)
 
-func (v *VideoClipProcessor) getTempVideoFolders(sourceId string) []fs.FileInfo {
-	tempRootPath := v.getTempRecordPath(sourceId)
-	videoFiles, _ := ioutil.ReadDir(tempRootPath)
+func (v *VideoClipProcessor) getAiVideoFolders(sourceId string) []fs.FileInfo {
+	aiRootPath := v.getAiRecordPath(sourceId)
+	videoFiles, _ := ioutil.ReadDir(aiRootPath)
 	if len(videoFiles) < 2 {
-		log.Println("no video clips found on the temp folder")
+		log.Println("no video clips found on the ai folder")
 		return emptyFileInfos
 	}
 	//remove the last one
@@ -64,17 +64,17 @@ func (v *VideoClipProcessor) createVideoClipInfos() ([]*VideoClipObject, error) 
 	allDetectedObjects, _ := v.OdqRep.PopAll()
 	streams, _ := v.StreamRep.GetAll()
 	for _, stream := range streams {
-		if !stream.VideoClipEnabled {
+		if !stream.AiClipEnabled {
 			continue
 		}
 		sourceId := stream.Id
-		tempVideoFiles := v.getTempVideoFolders(sourceId)
-		for _, tempVideoFi := range tempVideoFiles {
-			tempFileName := tempVideoFi.Name()
+		aiVideoFiles := v.getAiVideoFolders(sourceId)
+		for _, aiVideoFi := range aiVideoFiles {
+			aiFileName := aiVideoFi.Name()
 			vci := VideoClipObject{}
 			vci.SourceId = sourceId
 			vci.ObjectDetectionModels = make([]*models.ObjectDetectionModel, 0)
-			vci.FileName = tempFileName
+			vci.FileName = aiFileName
 			vci.Duration = duration
 			vci.SetupDateTimes()
 			for _, detectedObject := range allDetectedObjects {
@@ -88,9 +88,9 @@ func (v *VideoClipProcessor) createVideoClipInfos() ([]*VideoClipObject, error) 
 				hasDetectionVideoClips = append(hasDetectionVideoClips, &vci)
 			} else {
 				//delete the non-object detection containing video files
-				tempRootPath := v.getTempRecordPath(sourceId)
-				os.Remove(path.Join(tempRootPath, tempFileName))
-				log.Println("a temp video file deleted: " + tempFileName)
+				aiRootPath := v.getAiRecordPath(sourceId)
+				os.Remove(path.Join(aiRootPath, aiFileName))
+				log.Println("an ai video file deleted: " + aiFileName)
 			}
 		}
 	}
@@ -103,7 +103,7 @@ func (v *VideoClipProcessor) move(clips []*VideoClipObject) error {
 
 	for _, clip := range clips {
 		//move video clips' to persistent folder
-		oldLocation := path.Join(v.getTempRecordPath(clip.SourceId), clip.FileName)
+		oldLocation := path.Join(v.getAiRecordPath(clip.SourceId), clip.FileName)
 
 		indexedSourceVideosPath := v.getIndexedSourceVideosPath(clip)
 		err := utils.CreateDirectoryIfNotExists(indexedSourceVideosPath)
