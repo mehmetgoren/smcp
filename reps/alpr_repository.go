@@ -11,26 +11,27 @@ import (
 	"strings"
 )
 
-type FrHandlerRepository struct {
+type AlprHandlerRepository struct {
 	Config *models.Config
 }
 
-func (o *FrHandlerRepository) Save(fr *models.FaceRecognitionModel) error {
-	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(fr.Base64Image))
+func (a *AlprHandlerRepository) Save(ar *models.AlprResponse) error {
+	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(ar.Base64Image))
 	defer ioutil.NopCloser(reader)
+
 	imageBytes, err := ioutil.ReadAll(reader)
 	if err != nil {
-		log.Println("DiskEventHandler: Reading base64 message error: " + err.Error())
+		log.Println("AlprHandlerRepository: Reading base64 message error: " + err.Error())
 		return err
 	}
-	//
-	createdAt := utils.StringToTime(fr.CreatedAt)
+
+	createdAt := utils.StringToTime(ar.CreatedAt)
 	timeIndex := TimeIndex{}
 	timeIndex.SetValuesFrom(&createdAt)
 
 	//save the image first
 	// creates an indexed data directory
-	rootPathImage := utils.GetFrImagesPathBySourceId(o.Config, fr.SourceId)
+	rootPathImage := utils.GetAlprImagesPathBySourceId(a.Config, ar.SourceId)
 	fullPathImage := timeIndex.GetIndexedPath(rootPathImage)
 	err = utils.CreateDirectoryIfNotExists(fullPathImage)
 	if err != nil {
@@ -38,7 +39,7 @@ func (o *FrHandlerRepository) Save(fr *models.FaceRecognitionModel) error {
 	}
 
 	// write a file as jpeg
-	fullFileNameImage := path.Join(fullPathImage, fr.CreateFileName()+".jpg")
+	fullFileNameImage := path.Join(fullPathImage, ar.CreateFileName()+".jpg")
 	err = ioutil.WriteFile(fullFileNameImage, imageBytes, 0777)
 	if err != nil {
 		log.Println("an error occurred during the writing image file, ", err)
@@ -48,19 +49,22 @@ func (o *FrHandlerRepository) Save(fr *models.FaceRecognitionModel) error {
 
 	// and then json file
 	// creates an indexed data directory
-	rootPathData := utils.GetFrDataPathBySourceId(o.Config, fr.SourceId)
+	rootPathData := utils.GetAlprDataPathBySourceId(a.Config, ar.SourceId)
 	fullPathData := timeIndex.GetIndexedPath(rootPathData)
 	err = utils.CreateDirectoryIfNotExists(fullPathData)
 	if err != nil {
 		log.Println("an error occurred during the creating indexed data directory, ", err)
 	}
+
 	//write a file as json
-	baseObj := models.FaceRecognitionJsonBaseObject{Id: fr.Id, SourceId: fr.SourceId, CreatedAt: fr.CreatedAt,
-		DetectedFaces: fr.DetectedFaces, AiClipEnabled: fr.AiClipEnabled}
-	baseObj.ImageFileName = strings.Replace(fullFileNameImage, o.Config.General.RootFolderPath+"/", "", -1)
-	fullFileNameData := path.Join(fullPathData, fr.CreateFileName()+".json")
-	baseObj.DataFileName = strings.Replace(fullFileNameData, o.Config.General.RootFolderPath+"/", "", -1)
-	jsonObj := models.FaceRecognitionJsonObject{FaceRecognition: &baseObj, Video: &models.VideoClipJsonObject{}}
+	baseObj := models.AlprJsonBaseObject{
+		ImgWidth: ar.ImgWidth, ImgHeight: ar.ImgHeight, ProcessingTimeMs: ar.ProcessingTimeMs,
+		Results: ar.Results, Id: ar.Id, SourceId: ar.SourceId, CreatedAt: ar.CreatedAt, AiClipEnabled: ar.AiClipEnabled,
+	}
+	baseObj.ImageFileName = strings.Replace(fullFileNameImage, a.Config.General.RootFolderPath+"/", "", -1)
+	fullFileNameData := path.Join(fullPathData, ar.CreateFileName()+".json")
+	baseObj.DataFileName = strings.Replace(fullFileNameData, a.Config.General.RootFolderPath+"/", "", -1)
+	jsonObj := models.AlprJsonObject{AlprResults: &baseObj, Video: &models.VideoClipJsonObject{}}
 	bytes, _ := json.Marshal(jsonObj)
 
 	err = ioutil.WriteFile(fullFileNameData, bytes, 0777)

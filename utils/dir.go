@@ -73,3 +73,18 @@ func GetFrImagesPathBySourceId(config *models.Config, sourceId string) string {
 func GetFrDataPathBySourceId(config *models.Config, sourceId string) string {
 	return path.Join(getFrPath(config), sourceId, "data")
 }
+
+// alpr starts
+func getAlprPath(config *models.Config) string {
+	return path.Join(config.General.RootFolderPath, "alpr")
+}
+
+func GetAlprImagesPathBySourceId(config *models.Config, sourceId string) string {
+	return path.Join(getAlprPath(config), sourceId, "images")
+}
+
+func GetAlprDataPathBySourceId(config *models.Config, sourceId string) string {
+	return path.Join(getAlprPath(config), sourceId, "data")
+}
+
+// alpr ends

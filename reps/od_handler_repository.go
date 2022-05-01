@@ -40,7 +40,7 @@ func (o *OdHandlerRepository) Save(de *models.ObjectDetectionModel) error {
 	}
 	//
 	// write a file as jpeg
-	fullFileNameImage := path.Join(fullPathImage, de.CreateFileName()+".jpeg")
+	fullFileNameImage := path.Join(fullPathImage, de.CreateFileName()+".jpg")
 	err = ioutil.WriteFile(fullFileNameImage, imageBytes, 0777)
 	if err != nil {
 		log.Println("an error occurred during the writing image file, ", err)

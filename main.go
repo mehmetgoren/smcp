@@ -72,6 +72,7 @@ func main() {
 	}()
 
 	go listenOdEventHandlers(redisClient, config, host, port)
+	go listenAlprEventHandler(config, host, port)
 	listenFrEventHandler(config, host, port)
 }
 
@@ -126,5 +127,19 @@ func listenFrEventHandler(config *models.Config, host string, port int) {
 	}
 
 	var e = eb.EventBus{PubSubConnection: createRedisClient(host, port, EVENTBUS), Channel: "fr_service"}
+	e.Subscribe(handler)
+}
+
+func listenAlprEventHandler(config *models.Config, host string, port int) {
+	handlerList := make([]eb.EventHandler, 0)
+	ahr := &reps.AlprHandlerRepository{Config: config}
+	var diskHandler = eb.AlprDiskEventHandler{Ahr: ahr}
+	handlerList = append(handlerList, &diskHandler)
+
+	var handler = &eb.ComboEventHandler{
+		EventHandlers: handlerList,
+	}
+
+	var e = eb.EventBus{PubSubConnection: createRedisClient(host, port, EVENTBUS), Channel: "alpr_service"}
 	e.Subscribe(handler)
 }

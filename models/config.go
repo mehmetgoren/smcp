@@ -47,9 +47,10 @@ type Config struct {
 		RecordVideoFileIndexerInterval int     `json:"record_video_file_indexer_interval"`
 	} `json:"ffmpeg"`
 	Ai struct {
-		ReadServiceOverlay      bool    `json:"read_service_overlay"`
+		Overlay                 bool    `json:"overlay"`
 		VideoClipDuration       int     `json:"video_clip_duration"`
 		FaceRecogMtcnnThreshold float32 `json:"face_recog_mtcnn_threshold"`
 		FaceRecogProbThreshold  float32 `json:"face_recog_prob_threshold"`
+		PlateRecogInstanceCount int     `json:"plate_recog_instance_count"`
 	} `json:"ai"`
 }
