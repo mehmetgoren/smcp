@@ -1,4 +1,4 @@
-package reps
+package disk
 
 import (
 	"encoding/base64"
@@ -11,35 +11,36 @@ import (
 	"strings"
 )
 
-type AlprHandlerRepository struct {
-	Config *models.Config
+type Storage[T any] struct {
+	Provider FeatureProvider[T]
 }
 
-func (a *AlprHandlerRepository) Save(ar *models.AlprResponse) error {
-	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(ar.Base64Image))
-	defer ioutil.NopCloser(reader)
+func (s *Storage[T]) Save(config *models.Config, model interface{}) error {
+	s.Provider.SetConfigAndModel(config, model)
 
+	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(*s.Provider.GetBase64Image()))
+	defer ioutil.NopCloser(reader)
 	imageBytes, err := ioutil.ReadAll(reader)
 	if err != nil {
 		log.Println("AlprHandlerRepository: Reading base64 message error: " + err.Error())
 		return err
 	}
 
-	createdAt := utils.StringToTime(ar.CreatedAt)
+	createdAt := utils.StringToTime(s.Provider.GetCreatedAt())
 	timeIndex := TimeIndex{}
 	timeIndex.SetValuesFrom(&createdAt)
 
 	//save the image first
 	// creates an indexed data directory
-	rootPathImage := utils.GetAlprImagesPathBySourceId(a.Config, ar.SourceId)
+	rootPathImage := s.Provider.GetImagesPathBySourceId()
 	fullPathImage := timeIndex.GetIndexedPath(rootPathImage)
 	err = utils.CreateDirectoryIfNotExists(fullPathImage)
 	if err != nil {
 		log.Println("an error occurred during the creating indexed image directory, ", err)
 	}
-
+	//
 	// write a file as jpeg
-	fullFileNameImage := path.Join(fullPathImage, ar.CreateFileName()+".jpg")
+	fullFileNameImage := path.Join(fullPathImage, s.Provider.GetFileName()+".jpg")
 	err = ioutil.WriteFile(fullFileNameImage, imageBytes, 0777)
 	if err != nil {
 		log.Println("an error occurred during the writing image file, ", err)
@@ -49,24 +50,18 @@ func (a *AlprHandlerRepository) Save(ar *models.AlprResponse) error {
 
 	// and then json file
 	// creates an indexed data directory
-	rootPathData := utils.GetAlprDataPathBySourceId(a.Config, ar.SourceId)
+	rootPathData := s.Provider.GetDataPathBySourceId()
 	fullPathData := timeIndex.GetIndexedPath(rootPathData)
 	err = utils.CreateDirectoryIfNotExists(fullPathData)
 	if err != nil {
 		log.Println("an error occurred during the creating indexed data directory, ", err)
 	}
-
 	//write a file as json
-	baseObj := models.AlprJsonBaseObject{
-		ImgWidth: ar.ImgWidth, ImgHeight: ar.ImgHeight, ProcessingTimeMs: ar.ProcessingTimeMs,
-		Results: ar.Results, Id: ar.Id, SourceId: ar.SourceId, CreatedAt: ar.CreatedAt, AiClipEnabled: ar.AiClipEnabled,
-	}
-	baseObj.ImageFileName = strings.Replace(fullFileNameImage, a.Config.General.RootFolderPath+"/", "", -1)
-	fullFileNameData := path.Join(fullPathData, ar.CreateFileName()+".json")
-	baseObj.DataFileName = strings.Replace(fullFileNameData, a.Config.General.RootFolderPath+"/", "", -1)
-	jsonObj := models.AlprJsonObject{AlprResults: &baseObj, Video: &models.VideoClipJsonObject{}}
+	jsonObj := s.Provider.CreateJsonObject()
+	s.Provider.SetImageFileName(jsonObj, strings.Replace(fullFileNameImage, config.General.RootFolderPath+"/", "", -1))
+	fullFileNameData := path.Join(fullPathData, s.Provider.GetFileName()+".json")
+	s.Provider.SetDataFileName(jsonObj, strings.Replace(fullFileNameData, config.General.RootFolderPath+"/", "", -1))
 	bytes, _ := json.Marshal(jsonObj)
-
 	err = ioutil.WriteFile(fullFileNameData, bytes, 0777)
 	if err != nil {
 		log.Println("an error occurred during the writing json data file, ", err)
@@ -74,5 +69,5 @@ func (a *AlprHandlerRepository) Save(ar *models.AlprResponse) error {
 	log.Println("DiskEventHandler: json data saved successfully as " + fullFileNameData)
 	//
 
-	return nil
+	return err
 }

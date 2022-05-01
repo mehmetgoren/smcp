@@ -7,11 +7,11 @@ import (
 	"smcp/utils"
 )
 
-type FrDiskEventHandler struct {
+type FrEventHandler struct {
 	Fhr *reps.FrHandlerRepository
 }
 
-func (d *FrDiskEventHandler) Handle(event *redis.Message) (interface{}, error) {
+func (d *FrEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
 	var de = models.FaceRecognitionModel{}

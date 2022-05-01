@@ -79,11 +79,11 @@ func main() {
 func listenOdEventHandlers(mainConn *redis.Client, config *models.Config, host string, port int) {
 	handlerList := make([]eb.EventHandler, 0)
 	ohr := &reps.OdHandlerRepository{Config: config}
-	var diskHandler = eb.OdDiskEventHandler{Ohr: ohr}
+	var diskHandler = eb.OdEventHandler{Ohr: ohr}
 	handlerList = append(handlerList, &diskHandler)
 
 	//detection series handler
-	var vch = eb.OdVideoClipsEventHandler{Connection: mainConn}
+	var vch = eb.OdAiClipEventHandler{Connection: mainConn}
 	handlerList = append(handlerList, &vch)
 
 	//telegramBotClient, botErr := tb.CreateTelegramBot(&rep)
@@ -104,22 +104,22 @@ func listenOdEventHandlers(mainConn *redis.Client, config *models.Config, host s
 	// starts video clips processor
 	odqRep := reps.OdQueueRepository{Connection: mainConn}
 	streamRep := reps.StreamRepository{Connection: mainConn}
-	vcp := vc.VideoClipProcessor{Config: config, OdqRep: &odqRep, StreamRep: &streamRep}
+	vcp := vc.AiClipProcessor{Config: config, OdqRep: &odqRep, StreamRep: &streamRep}
 	go vcp.Start()
 	// ends video clips processor
 
-	var handler = &eb.ComboEventHandler{
+	var comboHandler = &eb.ComboEventHandler{
 		EventHandlers: handlerList,
 	}
 
 	var e = eb.EventBus{PubSubConnection: createRedisClient(host, port, EVENTBUS), Channel: "od_service"}
-	e.Subscribe(handler)
+	e.Subscribe(comboHandler)
 }
 
 func listenFrEventHandler(config *models.Config, host string, port int) {
 	handlerList := make([]eb.EventHandler, 0)
 	fhr := &reps.FrHandlerRepository{Config: config}
-	var diskHandler = eb.FrDiskEventHandler{Fhr: fhr}
+	var diskHandler = eb.FrEventHandler{Fhr: fhr}
 	handlerList = append(handlerList, &diskHandler)
 
 	var handler = &eb.ComboEventHandler{
@@ -133,7 +133,7 @@ func listenFrEventHandler(config *models.Config, host string, port int) {
 func listenAlprEventHandler(config *models.Config, host string, port int) {
 	handlerList := make([]eb.EventHandler, 0)
 	ahr := &reps.AlprHandlerRepository{Config: config}
-	var diskHandler = eb.AlprDiskEventHandler{Ahr: ahr}
+	var diskHandler = eb.AlprEventHandler{Ahr: ahr}
 	handlerList = append(handlerList, &diskHandler)
 
 	var handler = &eb.ComboEventHandler{

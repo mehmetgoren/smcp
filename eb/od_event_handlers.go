@@ -15,16 +15,11 @@ import (
 	"gopkg.in/tucnak/telebot.v2"
 )
 
-// EventHandler desperately needs generics
-type EventHandler interface {
-	Handle(event *redis.Message) (interface{}, error)
-}
-
-type OdDiskEventHandler struct {
+type OdEventHandler struct {
 	Ohr *reps.OdHandlerRepository
 }
 
-func (d *OdDiskEventHandler) Handle(event *redis.Message) (interface{}, error) {
+func (d *OdEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
 	var de = models.ObjectDetectionModel{}
@@ -34,11 +29,11 @@ func (d *OdDiskEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	return nil, nil
 }
 
-type OdVideoClipsEventHandler struct {
+type OdAiClipEventHandler struct {
 	Connection *redis.Client
 }
 
-func (v *OdVideoClipsEventHandler) Handle(event *redis.Message) (interface{}, error) {
+func (v *OdAiClipEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 	rep := reps.OdQueueRepository{Connection: v.Connection}
 	rep.Add(&event.Payload)

@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"smcp/disk"
 	"smcp/models"
 	"smcp/reps"
 	"smcp/utils"
@@ -15,26 +16,26 @@ import (
 	"time"
 )
 
-type VideoClipProcessor struct {
+type AiClipProcessor struct {
 	Config    *models.Config
 	OdqRep    *reps.OdQueueRepository
 	StreamRep *reps.StreamRepository
 }
 
-func (v *VideoClipProcessor) getAiRecordPath(sourceId string) string {
+func (v *AiClipProcessor) getAiRecordPath(sourceId string) string {
 	return path.Join(utils.GetRecordPath(v.Config), sourceId, "ai")
 }
 
-func (v *VideoClipProcessor) getIndexedSourceVideosPath(clip *VideoClipObject) string {
+func (v *AiClipProcessor) getIndexedSourceVideosPath(clip *AiClipObject) string {
 	rootPath := utils.GetOdVideosPathBySourceId(v.Config, clip.SourceId)
-	ti := reps.TimeIndex{}
+	ti := disk.TimeIndex{}
 	ti.SetValuesFrom(&clip.CreatedAtTime)
 	return ti.GetIndexedPath(rootPath)
 }
 
-func (v *VideoClipProcessor) getIndexedSourceDataPath(clip *VideoClipObject) string {
+func (v *AiClipProcessor) getIndexedSourceDataPath(clip *AiClipObject) string {
 	rootPath := path.Join(utils.GetOdDataPathBySourceId(v.Config, clip.SourceId))
-	ti := reps.TimeIndex{}
+	ti := disk.TimeIndex{}
 	ti.SetValuesFrom(&clip.CreatedAtTime)
 	return ti.GetIndexedPath(rootPath)
 }
@@ -44,7 +45,7 @@ var minFileCount = 2
 
 var emptyFileInfos = make([]fs.FileInfo, 0)
 
-func (v *VideoClipProcessor) getAiVideoFolders(sourceId string) []fs.FileInfo {
+func (v *AiClipProcessor) getAiVideoFolders(sourceId string) []fs.FileInfo {
 	aiRootPath := v.getAiRecordPath(sourceId)
 	videoFiles, _ := ioutil.ReadDir(aiRootPath)
 	if len(videoFiles) < 2 {
@@ -57,8 +58,8 @@ func (v *VideoClipProcessor) getAiVideoFolders(sourceId string) []fs.FileInfo {
 	return videoFiles
 }
 
-func (v *VideoClipProcessor) createVideoClipInfos() ([]*VideoClipObject, error) {
-	hasDetectionVideoClips := make([]*VideoClipObject, 0)
+func (v *AiClipProcessor) createVideoClipInfos() ([]*AiClipObject, error) {
+	hasDetectionVideoClips := make([]*AiClipObject, 0)
 
 	duration := v.Config.Ai.VideoClipDuration
 	allDetectedObjects, _ := v.OdqRep.PopAll()
@@ -71,7 +72,7 @@ func (v *VideoClipProcessor) createVideoClipInfos() ([]*VideoClipObject, error) 
 		aiVideoFiles := v.getAiVideoFolders(sourceId)
 		for _, aiVideoFi := range aiVideoFiles {
 			aiFileName := aiVideoFi.Name()
-			vci := VideoClipObject{}
+			vci := AiClipObject{}
 			vci.SourceId = sourceId
 			vci.ObjectDetectionModels = make([]*models.ObjectDetectionModel, 0)
 			vci.FileName = aiFileName
@@ -98,7 +99,7 @@ func (v *VideoClipProcessor) createVideoClipInfos() ([]*VideoClipObject, error) 
 	return hasDetectionVideoClips, nil
 }
 
-func (v *VideoClipProcessor) move(clips []*VideoClipObject) error {
+func (v *AiClipProcessor) move(clips []*AiClipObject) error {
 	defer utils.HandlePanic()
 
 	for _, clip := range clips {
@@ -156,14 +157,14 @@ func findOdModel(list []*models.ObjectDetectionModel, id string) *models.ObjectD
 	return nil
 }
 
-func (v *VideoClipProcessor) check() {
+func (v *AiClipProcessor) check() {
 	defer utils.HandlePanic()
 	log.Println("Video Clip Processor checking has been started at " + utils.TimeToString(time.Now(), true))
 	clips, _ := v.createVideoClipInfos()
 	v.move(clips)
 }
 
-func (v *VideoClipProcessor) Start() {
+func (v *AiClipProcessor) Start() {
 	defer utils.HandlePanic()
 
 	s := gocron.NewScheduler(time.UTC)

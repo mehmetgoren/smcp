@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type VideoClipObject struct {
+type AiClipObject struct {
 	SourceId              string
 	ObjectDetectionModels []*models.ObjectDetectionModel
 	FileName              string
@@ -18,7 +18,7 @@ type VideoClipObject struct {
 	LastModifiedTime      time.Time
 }
 
-func (v *VideoClipObject) SetupDateTimes() {
+func (v *AiClipObject) SetupDateTimes() {
 	fileName := utils.GetFileNameWithoutExtension(v.FileName)
 	v.CreatedAtTime = utils.StringToTime(strings.Split(fileName, ".")[0])
 	v.CreatedAt = utils.TimeToString(v.CreatedAtTime, false)
@@ -26,7 +26,7 @@ func (v *VideoClipObject) SetupDateTimes() {
 	v.LastModified = utils.TimeToString(v.LastModifiedTime, false)
 }
 
-func (v *VideoClipObject) IsInTimeSpan(check time.Time) bool {
+func (v *AiClipObject) IsInTimeSpan(check time.Time) bool {
 	start := v.CreatedAtTime
 	end := v.LastModifiedTime
 	if start.Before(end) {

@@ -7,11 +7,11 @@ import (
 	"smcp/utils"
 )
 
-type AlprDiskEventHandler struct {
+type AlprEventHandler struct {
 	Ahr *reps.AlprHandlerRepository
 }
 
-func (a *AlprDiskEventHandler) Handle(event *redis.Message) (interface{}, error) {
+func (a *AlprEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
 	var ar = models.AlprResponse{}
