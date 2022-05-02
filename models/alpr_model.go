@@ -25,3 +25,7 @@ type AlprResponse struct {
 	CreatedAt     string `json:"created_at"`
 	AiClipEnabled bool   `json:"ai_clip_enabled"`
 }
+
+func (d *AlprResponse) CreateFileName() string {
+	return d.SourceId + "_" + d.CreatedAt + "_" + d.Id
+}

@@ -1,9 +1,5 @@
 package models
 
-func (d *AlprResponse) CreateFileName() string {
-	return d.SourceId + "_" + d.CreatedAt + "_" + d.Id
-}
-
 type AlprJsonBaseObject struct {
 	ImgWidth         int     `json:"img_width"`
 	ImgHeight        int     `json:"img_height"`
