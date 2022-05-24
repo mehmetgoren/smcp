@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"path"
 	"path/filepath"
 	"runtime/debug"
 	"strconv"
@@ -60,13 +61,13 @@ func StringToTime(dateString string) time.Time {
 func TimeToString(time time.Time, includeNanoSec bool) string {
 	arr := make([]string, 0)
 	arr = append(arr, strconv.Itoa(time.Year()))
-	arr = append(arr, strconv.Itoa(int(time.Month())))
-	arr = append(arr, strconv.Itoa(time.Day()))
-	arr = append(arr, strconv.Itoa(time.Hour()))
-	arr = append(arr, strconv.Itoa(time.Minute()))
-	arr = append(arr, strconv.Itoa(time.Second()))
+	arr = append(arr, fixZero(int(time.Month())))
+	arr = append(arr, fixZero(time.Day()))
+	arr = append(arr, fixZero(time.Hour()))
+	arr = append(arr, fixZero(time.Minute()))
+	arr = append(arr, fixZero(time.Second()))
 	if includeNanoSec {
-		arr = append(arr, strconv.Itoa(time.Nanosecond()))
+		arr = append(arr, fixZero(time.Nanosecond()))
 	}
 
 	return strings.Join(arr, sep)
@@ -77,4 +78,44 @@ func GetFileNameWithoutExtension(fileName string) string {
 	extension := filepath.Ext(fileName)
 	fileName = fileName[0 : len(fileName)-len(extension)]
 	return fileName
+}
+
+func fixZero(val int) string {
+	if val < 9 {
+		return "0" + strconv.Itoa(val)
+	}
+	return strconv.Itoa(val)
+}
+
+type TimeIndex struct {
+	Year  string
+	Month string
+	Day   string
+	Hour  string
+}
+
+func (i *TimeIndex) SetValuesFrom(t *time.Time) *TimeIndex {
+	i.Year = strconv.Itoa(t.Year())
+	i.Month = fixZero(int(t.Month()))
+	i.Day = fixZero(t.Day())
+	i.Hour = fixZero(t.Hour())
+	return i
+}
+
+func (i *TimeIndex) GetIndexedPath(rootPath string) string {
+	arr := make([]string, 0)
+	arr = append(arr, rootPath)
+	arr = append(arr, i.Year)
+	v, _ := strconv.Atoi(i.Month)
+	if v > 0 {
+		arr = append(arr, i.Month)
+	}
+	v, _ = strconv.Atoi(i.Day)
+	if v > 0 {
+		arr = append(arr, i.Day)
+	}
+	v, _ = strconv.Atoi(i.Hour)
+	arr = append(arr, i.Hour)
+
+	return path.Join(arr...)
 }

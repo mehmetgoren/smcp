@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"smcp/disk"
 	"smcp/models"
 	"smcp/reps"
 	"smcp/utils"
@@ -28,14 +27,14 @@ func (v *AiClipProcessor) getAiRecordPath(sourceId string) string {
 
 func (v *AiClipProcessor) getIndexedSourceVideosPath(clip *AiClipObject) string {
 	rootPath := utils.GetOdVideosPathBySourceId(v.Config, clip.SourceId)
-	ti := disk.TimeIndex{}
+	ti := utils.TimeIndex{}
 	ti.SetValuesFrom(&clip.CreatedAtTime)
 	return ti.GetIndexedPath(rootPath)
 }
 
 func (v *AiClipProcessor) getIndexedSourceDataPath(clip *AiClipObject) string {
 	rootPath := path.Join(utils.GetOdDataPathBySourceId(v.Config, clip.SourceId))
-	ti := disk.TimeIndex{}
+	ti := utils.TimeIndex{}
 	ti.SetValuesFrom(&clip.CreatedAtTime)
 	return ti.GetIndexedPath(rootPath)
 }

@@ -27,7 +27,7 @@ func (s *Storage[T]) Save(config *models.Config, model interface{}) error {
 	}
 
 	createdAt := utils.StringToTime(s.Provider.GetCreatedAt())
-	timeIndex := TimeIndex{}
+	timeIndex := utils.TimeIndex{}
 	timeIndex.SetValuesFrom(&createdAt)
 
 	//save the image first
