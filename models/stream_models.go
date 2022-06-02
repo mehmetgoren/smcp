@@ -44,4 +44,6 @@ type StreamModel struct {
 
 	ConcatDemuxerPid  int    `json:"concat_demuxer_pid" redis:"concat_demuxer_pid"`
 	ConcatDemuxerArgs string `json:"concat_demuxer_args" redis:"concat_demuxer_args"`
+
+	BoosterEnabled bool `json:"booster_enabled" redis:"booster_enabled"`
 }
