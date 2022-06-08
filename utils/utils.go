@@ -81,7 +81,7 @@ func GetFileNameWithoutExtension(fileName string) string {
 }
 
 func fixZero(val int) string {
-	if val < 9 {
+	if val < 10 {
 		return "0" + strconv.Itoa(val)
 	}
 	return strconv.Itoa(val)
