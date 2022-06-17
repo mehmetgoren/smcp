@@ -15,7 +15,6 @@ func SerializeJson(data interface{}) (string, error) {
 	return string(bytes), nil
 }
 
-// DeserializeJson todo: we need generics here.
 func DeserializeJson(data string, result interface{}) error {
 	err := json.Unmarshal([]byte(data), result)
 	if err != nil {
