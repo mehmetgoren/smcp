@@ -1,31 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"github.com/go-redis/redis/v8"
 	"log"
-	"os"
 	"smcp/eb"
 	"smcp/models"
 	"smcp/reps"
 	"smcp/utils"
 	"smcp/vc"
-	"strconv"
 )
-
-const (
-	MAIN     = 0
-	RQ       = 1
-	EVENTBUS = 15
-)
-
-func createRedisClient(host string, port int, db int) *redis.Client {
-	return redis.NewClient(&redis.Options{
-		Addr:     host + ":" + strconv.Itoa(port),
-		Password: "", // no password set
-		DB:       db, // use default DB (0)
-	})
-}
 
 func createHeartbeatRepository(client *redis.Client, serviceName string, config *models.Config) *reps.HeartbeatRepository {
 	var heartbeatRepository = reps.HeartbeatRepository{Client: client, TimeSecond: int64(config.General.HeartbeatInterval), ServiceName: serviceName}
@@ -42,28 +25,17 @@ func createServiceRepository(client *redis.Client) *reps.ServiceRepository {
 func main() {
 	defer utils.HandlePanic()
 
-	host := os.Getenv("REDIS_HOST")
-	fmt.Println("Redis host: ", host)
-	if len(host) == 0 {
-		host = "127.0.0.1"
-	}
-	portStr := os.Getenv("REDIS_PORT")
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		log.Println("An error occurred while converting Redis port value:" + err.Error())
-		port = 6379
-	}
-	redisClient := createRedisClient(host, port, MAIN)
-	utils.SetPool(redisClient)
+	mainConn := reps.CreateRedisConnection(reps.MAIN)
+	utils.SetPool(mainConn)
 
-	var configRep = reps.ConfigRepository{Connection: redisClient}
+	var configRep = reps.ConfigRepository{Connection: mainConn}
 	config, _ := configRep.GetConfig()
 
 	serviceName := "cloud_integration_service"
-	heartbeat := createHeartbeatRepository(redisClient, serviceName, config)
+	heartbeat := createHeartbeatRepository(mainConn, serviceName, config)
 	go heartbeat.Start()
 
-	serviceRepository := createServiceRepository(redisClient)
+	serviceRepository := createServiceRepository(mainConn)
 	go func() {
 		_, err := serviceRepository.Add(serviceName)
 		if err != nil {
@@ -71,12 +43,13 @@ func main() {
 		}
 	}()
 
-	go listenOdEventHandlers(redisClient, config, host, port)
-	go listenAlprEventHandler(config, host, port)
-	listenFrEventHandler(config, host, port)
+	pubSubConn := reps.CreateRedisConnection(reps.EVENTBUS)
+	go listenOdEventHandlers(mainConn, pubSubConn, config)
+	go listenAlprEventHandler(pubSubConn, config)
+	listenFrEventHandler(pubSubConn, config)
 }
 
-func listenOdEventHandlers(mainConn *redis.Client, config *models.Config, host string, port int) {
+func listenOdEventHandlers(mainConn *redis.Client, pubSubConn *redis.Client, config *models.Config) {
 	handlerList := make([]eb.EventHandler, 0)
 	ohr := &reps.OdHandlerRepository{Config: config}
 	var diskHandler = eb.OdEventHandler{Ohr: ohr}
@@ -112,11 +85,11 @@ func listenOdEventHandlers(mainConn *redis.Client, config *models.Config, host s
 		EventHandlers: handlerList,
 	}
 
-	var e = eb.EventBus{PubSubConnection: createRedisClient(host, port, EVENTBUS), Channel: "od_service"}
+	var e = eb.EventBus{PubSubConnection: pubSubConn, Channel: "od_service"}
 	e.Subscribe(comboHandler)
 }
 
-func listenFrEventHandler(config *models.Config, host string, port int) {
+func listenFrEventHandler(pubSubConn *redis.Client, config *models.Config) {
 	handlerList := make([]eb.EventHandler, 0)
 	fhr := &reps.FrHandlerRepository{Config: config}
 	var diskHandler = eb.FrEventHandler{Fhr: fhr}
@@ -126,11 +99,11 @@ func listenFrEventHandler(config *models.Config, host string, port int) {
 		EventHandlers: handlerList,
 	}
 
-	var e = eb.EventBus{PubSubConnection: createRedisClient(host, port, EVENTBUS), Channel: "fr_service"}
+	var e = eb.EventBus{PubSubConnection: pubSubConn, Channel: "fr_service"}
 	e.Subscribe(handler)
 }
 
-func listenAlprEventHandler(config *models.Config, host string, port int) {
+func listenAlprEventHandler(pubSubConn *redis.Client, config *models.Config) {
 	handlerList := make([]eb.EventHandler, 0)
 	ahr := &reps.AlprHandlerRepository{Config: config}
 	var diskHandler = eb.AlprEventHandler{Ahr: ahr}
@@ -140,6 +113,6 @@ func listenAlprEventHandler(config *models.Config, host string, port int) {
 		EventHandlers: handlerList,
 	}
 
-	var e = eb.EventBus{PubSubConnection: createRedisClient(host, port, EVENTBUS), Channel: "alpr_service"}
+	var e = eb.EventBus{PubSubConnection: pubSubConn, Channel: "alpr_service"}
 	e.Subscribe(handler)
 }
