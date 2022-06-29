@@ -16,17 +16,33 @@ import (
 )
 
 type OdEventHandler struct {
-	Ohr *reps.OdHandlerRepository
+	Ohr      *reps.OdHandlerRepository
+	Notifier *NotifierPublisher
 }
 
 func (d *OdEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
 	var de = models.ObjectDetectionModel{}
-	utils.DeserializeJson(event.Payload, &de)
-	d.Ohr.Save(&de)
+	err := utils.DeserializeJson(event.Payload, &de)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+	err = d.Ohr.Save(&de)
 
-	return nil, nil
+	if err == nil {
+		go func() {
+			err := d.Notifier.Publish(&event.Payload, ObjectDetection)
+			if err != nil {
+				log.Println(err.Error())
+			}
+		}()
+	} else {
+		log.Println(err.Error())
+	}
+
+	return nil, err
 }
 
 type OdAiClipEventHandler struct {

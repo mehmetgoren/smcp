@@ -44,15 +44,16 @@ func main() {
 	}()
 
 	pubSubConn := reps.CreateRedisConnection(reps.EVENTBUS)
-	go listenOdEventHandlers(mainConn, pubSubConn, config)
-	go listenAlprEventHandler(pubSubConn, config)
-	listenFrEventHandler(pubSubConn, config)
+	notifier := &eb.NotifierPublisher{PubSubConnection: pubSubConn}
+	go listenOdEventHandlers(mainConn, pubSubConn, notifier, config)
+	go listenFrEventHandler(pubSubConn, notifier, config)
+	listenAlprEventHandler(pubSubConn, notifier, config)
 }
 
-func listenOdEventHandlers(mainConn *redis.Client, pubSubConn *redis.Client, config *models.Config) {
+func listenOdEventHandlers(mainConn *redis.Client, pubSubConn *redis.Client, notifier *eb.NotifierPublisher, config *models.Config) {
 	handlerList := make([]eb.EventHandler, 0)
 	ohr := &reps.OdHandlerRepository{Config: config}
-	var diskHandler = eb.OdEventHandler{Ohr: ohr}
+	var diskHandler = eb.OdEventHandler{Ohr: ohr, Notifier: notifier}
 	handlerList = append(handlerList, &diskHandler)
 
 	//detection series handler
@@ -89,10 +90,10 @@ func listenOdEventHandlers(mainConn *redis.Client, pubSubConn *redis.Client, con
 	e.Subscribe(comboHandler)
 }
 
-func listenFrEventHandler(pubSubConn *redis.Client, config *models.Config) {
+func listenFrEventHandler(pubSubConn *redis.Client, notifier *eb.NotifierPublisher, config *models.Config) {
 	handlerList := make([]eb.EventHandler, 0)
 	fhr := &reps.FrHandlerRepository{Config: config}
-	var diskHandler = eb.FrEventHandler{Fhr: fhr}
+	var diskHandler = eb.FrEventHandler{Fhr: fhr, Notifier: notifier}
 	handlerList = append(handlerList, &diskHandler)
 
 	var handler = &eb.ComboEventHandler{
@@ -103,10 +104,10 @@ func listenFrEventHandler(pubSubConn *redis.Client, config *models.Config) {
 	e.Subscribe(handler)
 }
 
-func listenAlprEventHandler(pubSubConn *redis.Client, config *models.Config) {
+func listenAlprEventHandler(pubSubConn *redis.Client, notifier *eb.NotifierPublisher, config *models.Config) {
 	handlerList := make([]eb.EventHandler, 0)
 	ahr := &reps.AlprHandlerRepository{Config: config}
-	var diskHandler = eb.AlprEventHandler{Ahr: ahr}
+	var diskHandler = eb.AlprEventHandler{Ahr: ahr, Notifier: notifier}
 	handlerList = append(handlerList, &diskHandler)
 
 	var handler = &eb.ComboEventHandler{
