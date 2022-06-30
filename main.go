@@ -6,6 +6,7 @@ import (
 	"smcp/eb"
 	"smcp/models"
 	"smcp/reps"
+	"smcp/tb"
 	"smcp/utils"
 	"smcp/vc"
 )
@@ -45,28 +46,20 @@ func main() {
 
 	pubSubConn := reps.CreateRedisConnection(reps.EVENTBUS)
 	notifier := &eb.NotifierPublisher{PubSubConnection: pubSubConn}
-	go listenOdEventHandlers(mainConn, pubSubConn, notifier, config)
-	go listenFrEventHandler(pubSubConn, notifier, config)
-	listenAlprEventHandler(pubSubConn, notifier, config)
+	cloudRep := &reps.CloudRepository{Connection: mainConn}
+	tbc, _ := tb.CreateTelegramBot(cloudRep)
+	pars := &ListenParams{Config: config, Tcb: tbc, CloudRep: cloudRep, MainConn: mainConn, PubSubConn: pubSubConn, Notifier: notifier}
+	go listenOdEventHandlers(pars)
+	go listenFrEventHandler(pars)
+	listenAlprEventHandler(pars)
 }
 
-func listenOdEventHandlers(mainConn *redis.Client, pubSubConn *redis.Client, notifier *eb.NotifierPublisher, config *models.Config) {
+func createCloudEventHandlers(pars *ListenParams, aiType int) ([]eb.EventHandler, error) {
 	handlerList := make([]eb.EventHandler, 0)
-	ohr := &reps.OdHandlerRepository{Config: config}
-	var diskHandler = eb.OdEventHandler{Ohr: ohr, Notifier: notifier}
-	handlerList = append(handlerList, &diskHandler)
-
-	//detection series handler
-	var vch = eb.OdAiClipEventHandler{Connection: mainConn}
-	handlerList = append(handlerList, &vch)
-
-	//telegramBotClient, botErr := tb.CreateTelegramBot(&rep)
-	//if botErr != nil {
-	//	log.Println("telegram bot connection couldn't be created, the operation is now exiting")
-	//	return
-	//}
-	//var tbHandler eb.EventHandler = &eb.OdTelegramEventHandler{TelegramBotClient: &telegramBotClient}
-	//handlerList = append(handlerList, tbHandler)
+	if pars.CloudRep.IsTelegramIntegrationEnabled() {
+		var tbHandler eb.EventHandler = &eb.OdTelegramEventHandler{TelegramBotClient: pars.Tcb, AiType: aiType}
+		handlerList = append(handlerList, tbHandler)
+	}
 
 	//var fm = &gdrive.FolderManager{}
 	//fm.Redis = redisClient
@@ -75,10 +68,32 @@ func listenOdEventHandlers(mainConn *redis.Client, pubSubConn *redis.Client, not
 	//var gHandler = &eb.OdGdriveEventHandler{FolderManager: fm}
 	//handlerList = append(handlerList, gHandler)
 
+	return handlerList, nil
+}
+
+func listenOdEventHandlers(pars *ListenParams) {
+	handlerList := make([]eb.EventHandler, 0)
+	ohr := &reps.OdHandlerRepository{Config: pars.Config}
+	var diskHandler = eb.OdEventHandler{Ohr: ohr, Notifier: pars.Notifier}
+	handlerList = append(handlerList, &diskHandler)
+
+	//detection series handler
+	var vch = eb.OdAiClipEventHandler{Connection: pars.MainConn}
+	handlerList = append(handlerList, &vch)
+
+	cloudHandlers, err := createCloudEventHandlers(pars, eb.ObjectDetection)
+	if err == nil && cloudHandlers != nil && len(cloudHandlers) > 0 {
+		for _, ch := range cloudHandlers {
+			handlerList = append(handlerList, ch)
+		}
+	} else {
+		log.Println("No Cloud Provider has been register for Object Detection")
+	}
+
 	// starts video clips processor
-	odqRep := reps.OdQueueRepository{Connection: mainConn}
-	streamRep := reps.StreamRepository{Connection: mainConn}
-	vcp := vc.AiClipProcessor{Config: config, OdqRep: &odqRep, StreamRep: &streamRep}
+	odqRep := reps.OdQueueRepository{Connection: pars.MainConn}
+	streamRep := reps.StreamRepository{Connection: pars.MainConn}
+	vcp := vc.AiClipProcessor{Config: pars.Config, OdqRep: &odqRep, StreamRep: &streamRep}
 	go vcp.Start()
 	// ends video clips processor
 
@@ -86,34 +101,61 @@ func listenOdEventHandlers(mainConn *redis.Client, pubSubConn *redis.Client, not
 		EventHandlers: handlerList,
 	}
 
-	var e = eb.EventBus{PubSubConnection: pubSubConn, Channel: "od_service"}
+	var e = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "od_service"}
 	e.Subscribe(comboHandler)
 }
 
-func listenFrEventHandler(pubSubConn *redis.Client, notifier *eb.NotifierPublisher, config *models.Config) {
+func listenFrEventHandler(pars *ListenParams) {
 	handlerList := make([]eb.EventHandler, 0)
-	fhr := &reps.FrHandlerRepository{Config: config}
-	var diskHandler = eb.FrEventHandler{Fhr: fhr, Notifier: notifier}
+	fhr := &reps.FrHandlerRepository{Config: pars.Config}
+	var diskHandler = eb.FrEventHandler{Fhr: fhr, Notifier: pars.Notifier}
 	handlerList = append(handlerList, &diskHandler)
+
+	cloudHandlers, err := createCloudEventHandlers(pars, eb.FaceRecognition)
+	if err == nil && cloudHandlers != nil && len(cloudHandlers) > 0 {
+		for _, ch := range cloudHandlers {
+			handlerList = append(handlerList, ch)
+		}
+	} else {
+		log.Println("No Cloud Provider has been register for Face Recognition")
+	}
 
 	var handler = &eb.ComboEventHandler{
 		EventHandlers: handlerList,
 	}
 
-	var e = eb.EventBus{PubSubConnection: pubSubConn, Channel: "fr_service"}
+	var e = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "fr_service"}
 	e.Subscribe(handler)
 }
 
-func listenAlprEventHandler(pubSubConn *redis.Client, notifier *eb.NotifierPublisher, config *models.Config) {
+func listenAlprEventHandler(pars *ListenParams) {
 	handlerList := make([]eb.EventHandler, 0)
-	ahr := &reps.AlprHandlerRepository{Config: config}
-	var diskHandler = eb.AlprEventHandler{Ahr: ahr, Notifier: notifier}
+	ahr := &reps.AlprHandlerRepository{Config: pars.Config}
+	var diskHandler = eb.AlprEventHandler{Ahr: ahr, Notifier: pars.Notifier}
 	handlerList = append(handlerList, &diskHandler)
+
+	cloudHandlers, err := createCloudEventHandlers(pars, eb.PlateRecognition)
+	if err == nil && cloudHandlers != nil && len(cloudHandlers) > 0 {
+		for _, ch := range cloudHandlers {
+			handlerList = append(handlerList, ch)
+		}
+	} else {
+		log.Println("No Cloud Provider has been register for License Plate Recognition")
+	}
 
 	var handler = &eb.ComboEventHandler{
 		EventHandlers: handlerList,
 	}
 
-	var e = eb.EventBus{PubSubConnection: pubSubConn, Channel: "alpr_service"}
+	var e = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "alpr_service"}
 	e.Subscribe(handler)
+}
+
+type ListenParams struct {
+	MainConn   *redis.Client
+	PubSubConn *redis.Client
+	Notifier   *eb.NotifierPublisher
+	Config     *models.Config
+	CloudRep   *reps.CloudRepository
+	Tcb        *tb.TelegramBotClient
 }
