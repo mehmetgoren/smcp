@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var rootDirectoryName string = "Smart Machines"
+var rootDirectoryName = "Feniks"
 
 type GoogleDriveFolders struct {
 	SmartMachines *drive.File
@@ -21,7 +21,7 @@ type GoogleDriveFolders struct {
 }
 
 type FolderManager struct {
-	Gdrive  *GdriveClient
+	Client  *Client
 	Redis   *redis.Client
 	Pool    redsyncredis.Pool
 	Folders GoogleDriveFolders
@@ -55,31 +55,31 @@ func (d *FolderManager) getTodayFolder() (*drive.File, error) {
 	var smartMachineFolder *drive.File
 	smartMachineFolder = d.Folders.SmartMachines
 	if smartMachineFolder == nil {
-		smartMachineFolder, err = d.Gdrive.FindFolderByName(rootDirectoryName) // look first if ti was created before.
+		smartMachineFolder, err = d.Client.FindFolderByName(rootDirectoryName) // look first if ti was created before.
 		if err != nil {
 			log.Printf("Unable to parse client secret file to config: %v", err)
 			return nil, err
 		}
 		if smartMachineFolder == nil {
-			smartMachineFolder, err = d.Gdrive.CreateFolder(rootDirectoryName)
+			smartMachineFolder, err = d.Client.CreateFolder(rootDirectoryName)
 			if err != nil {
-				log.Printf("An error occurred on create Smart Machine folder: " + err.Error())
+				log.Printf("An error occurred on create Feniks folder: " + err.Error())
 				return nil, err
 			}
-			log.Println("Smart Machine folder has been created first time")
+			log.Println("Feniks folder has been created first time")
 		} else {
-			log.Println("Smart Machine folder has been created before, no need to create again")
+			log.Println("Feniks folder has been created before, no need to create again")
 		}
 		d.Folders.SmartMachines = smartMachineFolder
 	} else {
-		log.Println("Smart Machine folder has been already read and is being used now")
+		log.Println("Feniks folder has been already read and is being used now")
 	}
 
 	now := time.Now()
 	var getOrCreateChildFolder = func(parentFolder *drive.File, childFolder *drive.File, childFolderName string) (*drive.File, error) {
 		if childFolder == nil { //if it was not created before.
 			var err error
-			childFolder, err = d.Gdrive.FindChildFolder(parentFolder, childFolderName) // look if it was created by other process before.
+			childFolder, err = d.Client.FindChildFolder(parentFolder, childFolderName) // look if it was created by other process before.
 			if err != nil {
 				log.Printf("An error occurred on find folder: " + childFolderName + ", err: " + err.Error())
 				return nil, err
@@ -87,7 +87,7 @@ func (d *FolderManager) getTodayFolder() (*drive.File, error) {
 
 			if childFolder == nil { // if it wasn't created, lets' dot it for first time
 				log.Println(childFolderName + " Child folder is now creating first time: ")
-				childFolder, err = d.Gdrive.CreateChildFolder(parentFolder, childFolderName)
+				childFolder, err = d.Client.CreateChildFolder(parentFolder, childFolderName)
 				if err != nil {
 					log.Printf("An error occurred on create folder: " + childFolderName + ", err: " + err.Error())
 					return nil, err
@@ -144,7 +144,7 @@ func (d *FolderManager) UploadImage(fileName string, base64Image *string) (*driv
 	if err != nil {
 		return nil, err
 	}
-	file, err := d.Gdrive.CreateImageFile(todayFolder.Id, fileName, base64Image)
+	file, err := d.Client.CreateImageFile(todayFolder.Id, fileName, base64Image)
 	if err != nil {
 		log.Printf("Unable to upload image on drive service: %v", err)
 		return nil, err

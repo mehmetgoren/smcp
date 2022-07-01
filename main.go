@@ -4,6 +4,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"log"
 	"smcp/eb"
+	"smcp/gdrive"
 	"smcp/models"
 	"smcp/reps"
 	"smcp/tb"
@@ -61,12 +62,12 @@ func createCloudEventHandlers(pars *ListenParams, aiType int) ([]eb.EventHandler
 		handlerList = append(handlerList, tbHandler)
 	}
 
-	//var fm = &gdrive.FolderManager{}
-	//fm.Redis = redisClient
-	//fm.Gdrive = &gdrive.GdriveClient{}
-	//fm.Gdrive.Repository = &rep
-	//var gHandler = &eb.OdGdriveEventHandler{FolderManager: fm}
-	//handlerList = append(handlerList, gHandler)
+	if pars.CloudRep.IsGdriveIntegrationEnabled() {
+		var fm = &gdrive.FolderManager{Redis: pars.MainConn, Client: &gdrive.Client{}}
+		fm.Client.Repository = pars.CloudRep
+		var gHandler = &eb.GdriveEventHandler{FolderManager: fm, AiType: aiType}
+		handlerList = append(handlerList, gHandler)
+	}
 
 	return handlerList, nil
 }

@@ -3,8 +3,10 @@ package reps
 import (
 	"context"
 	"github.com/go-redis/redis/v8"
+	"golang.org/x/oauth2"
 	"log"
 	"smcp/models"
+	"smcp/utils"
 	"strconv"
 )
 
@@ -94,4 +96,96 @@ func (c *CloudRepository) GetTelegramBot() (*models.TelegramBot, error) {
 	bot := &models.TelegramBot{}
 	err := conn.HGetAll(context.Background(), getTelegramBotKey()).Scan(bot)
 	return bot, err
+}
+
+// ********************* GDrive *********************
+
+func getGdriveEnabledKey() string {
+	return "cloud:gdrive:enabled"
+}
+
+func getGdriveTokenKey() string {
+	return "cloud:gdrive:token"
+}
+
+func getGdriveCredentialsKey() string {
+	return "cloud:gdrive:credentials"
+}
+
+func getGdriveUrlKey() string {
+	return "cloud:gdrive:url"
+}
+
+func getGdriveAuthCodeKey() string {
+	return "cloud:gdrive:authcode"
+}
+
+func (c *CloudRepository) getValue(key string) (string, error) {
+	result, err := c.Connection.Get(context.Background(), key).Result()
+	if err != nil {
+		if err.Error() == "redis: nil" {
+			_, err := c.Connection.Set(context.Background(), key, "", 0).Result()
+			return "", err
+		} else {
+			log.Println(err.Error())
+			return "", err
+		}
+	}
+
+	return result, nil
+}
+func (c *CloudRepository) setValue(key string, value string) (string, error) {
+	return c.Connection.Set(context.Background(), key, value, 0).Result()
+}
+
+func (c *CloudRepository) IsGdriveIntegrationEnabled() bool {
+	conn := c.Connection
+	ctx := context.Background()
+	result, err := conn.Get(ctx, getGdriveEnabledKey()).Result()
+	if err != nil {
+		log.Println(err.Error())
+		_, err = conn.Set(ctx, getGdriveEnabledKey(), "0", 0).Result()
+		if err != nil {
+			log.Println(err.Error())
+		}
+		return false
+	}
+
+	return result == "1"
+}
+
+func (c *CloudRepository) GetGdriveToken() (*oauth2.Token, error) {
+	js, err := c.getValue(getGdriveTokenKey())
+	if err != nil {
+		return nil, err
+	}
+	var ret oauth2.Token
+	err = utils.DeserializeJson(js, &ret)
+	if err != nil {
+		return nil, err
+	}
+	return &ret, nil
+}
+
+func (c *CloudRepository) SaveGdriveToken(token *oauth2.Token) error {
+	js, err := utils.SerializeJson(token)
+	if err != nil {
+		return err
+	}
+	_, err = c.setValue(getGdriveTokenKey(), js)
+	return err
+}
+
+func (c *CloudRepository) GetGdriveCredentials() (string, error) {
+	return c.getValue(getGdriveCredentialsKey())
+}
+
+func (c *CloudRepository) SaveGdriveUrl(url string) error {
+	_, err := c.setValue(getGdriveUrlKey(), url)
+	return err
+}
+
+func (c *CloudRepository) SaveGdriveAuthCode(authCode string) error {
+	_, err := c.setValue(getGdriveAuthCodeKey(), authCode)
+	return err
 }

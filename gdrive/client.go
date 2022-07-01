@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"github.com/go-redsync/redsync/v4"
 	redsyncredis "github.com/go-redsync/redsync/v4/redis"
@@ -20,20 +19,25 @@ import (
 	"google.golang.org/api/option"
 )
 
-const (
-	RedisKeyCredentials = "gdrive_credentials"
-	RedisKeyToken       = "gdrive_token"
-)
+type Client struct {
+	Repository *reps.CloudRepository
+	srv        *drive.Service
+	pool       redsyncredis.Pool
+}
 
 // Retrieve a token, saves the token, then returns the generated client.
-func (g *GdriveClient) getClient(config *oauth2.Config) *http.Client {
+func (g *Client) getClient(config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
-	tok, err := g.tokenFromRedis()
+	tok, err := g.Repository.GetGdriveToken()
 	if err != nil {
 		tok = g.getTokenFromWeb(config)
-		g.saveTokenRedis(tok)
+		err = g.Repository.SaveGdriveToken(tok)
+		if err != nil {
+			log.Println(err.Error())
+			return nil
+		}
 	}
 	//todo: added for refresh, see it if it works.
 	config.TokenSource(context.Background(), tok)
@@ -41,8 +45,13 @@ func (g *GdriveClient) getClient(config *oauth2.Config) *http.Client {
 }
 
 // Request a token from the web, then returns the retrieved token.
-func (g *GdriveClient) getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+func (g *Client) getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	err := g.Repository.SaveGdriveUrl(authURL)
+	if err != nil {
+		log.Printf(err.Error())
+		return nil
+	}
 	fmt.Printf("Go to the following link in your browser then type the "+
 		"authorization code: \n%v\n", authURL)
 
@@ -50,57 +59,29 @@ func (g *GdriveClient) getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	if _, err := fmt.Scan(&authCode); err != nil {
 		log.Printf("Unable to read authorization code %v", err)
 	}
+	if len(authCode) > 0 {
+		err = g.Repository.SaveGdriveAuthCode(authCode)
+		if err != nil {
+			log.Printf(err.Error())
+			return nil
+		}
+	}
 
 	tok, err := config.Exchange(context.TODO(), authCode)
 	if err != nil {
 		log.Printf("Unable to retrieve token from web %v", err)
+		return nil
 	}
 	return tok
 }
 
-// Retrieves a token from a local file.
-func (g *GdriveClient) tokenFromRedis() (*oauth2.Token, error) {
-	tokenJson, err := g.Repository.GetValue(RedisKeyToken)
-	if err != nil {
-		return nil, err
-	}
-	tok := &oauth2.Token{}
-	err = json.Unmarshal([]byte(tokenJson), tok)
-	if err != nil {
-		log.Println("json conversation has been failed on tokenFromRedis due to " + err.Error())
-		return nil, err
-	}
-	return tok, nil
-}
-
-// Saves a token to a file path.
-func (g *GdriveClient) saveTokenRedis(token *oauth2.Token) {
-	tokenJson, err := json.Marshal(token)
-	if err != nil {
-		log.Println("json conversation has been failed on saveTokenRedis due to " + err.Error())
-	}
-
-	status := g.Repository.SetValue(RedisKeyToken, string(tokenJson))
-	if status.Err() != nil {
-		log.Println("redis setting value has been failed on saveTokenRedis due to " + err.Error())
-	}
-}
-
-type GdriveClient struct {
-	Repository *reps.RedisRepository
-	srv        *drive.Service
-	pool       redsyncredis.Pool
-}
-
-//var mutexName = "mutex-folder-manager"
-
-func (g *GdriveClient) createService() (*drive.Service, error) {
+func (g *Client) createService() (*drive.Service, error) {
 	if g.srv != nil {
 		return g.srv, nil
 	}
 
 	if g.pool == nil {
-		g.pool = goredis.NewPool(g.Repository.Client)
+		g.pool = goredis.NewPool(g.Repository.Connection)
 	}
 	rs := redsync.New(g.pool)
 	mutex := rs.NewMutex("mutex-gdrive")
@@ -118,7 +99,7 @@ func (g *GdriveClient) createService() (*drive.Service, error) {
 		return g.srv, nil
 	}
 
-	b, err := g.Repository.GetValue(RedisKeyCredentials)
+	b, err := g.Repository.GetGdriveCredentials()
 	if err != nil {
 		log.Printf("Unable to read client secret file: %v", err)
 		return nil, err
@@ -142,7 +123,7 @@ func (g *GdriveClient) createService() (*drive.Service, error) {
 	return srv, nil
 }
 
-func (g *GdriveClient) query(q string) (*drive.FileList, error) {
+func (g *Client) query(q string) (*drive.FileList, error) {
 	service, err := g.createService()
 	if err != nil {
 		log.Printf("Unable to create drive service: %v", err)
@@ -157,7 +138,7 @@ func (g *GdriveClient) query(q string) (*drive.FileList, error) {
 	return r, nil
 }
 
-func (g *GdriveClient) createPermission(file *drive.File) (*drive.Permission, error) {
+func (g *Client) createPermission(file *drive.File) (*drive.Permission, error) {
 	service, err := g.createService()
 	if err != nil {
 		log.Printf("Unable to create drive service: %v", err)
@@ -178,7 +159,7 @@ func (g *GdriveClient) createPermission(file *drive.File) (*drive.Permission, er
 	return newPerm, nil
 }
 
-func (g *GdriveClient) FindFolderByName(name string) (*drive.File, error) {
+func (g *Client) FindFolderByName(name string) (*drive.File, error) {
 	r, err := g.query("mimeType='application/vnd.google-apps.folder' and name='" + name + "'")
 	if err != nil {
 		log.Printf("Unable to retrieve directories: %v", err)
@@ -191,7 +172,7 @@ func (g *GdriveClient) FindFolderByName(name string) (*drive.File, error) {
 	return r.Files[0], nil
 }
 
-func (g *GdriveClient) CreateFolder(name string) (*drive.File, error) {
+func (g *Client) CreateFolder(name string) (*drive.File, error) {
 	service, err := g.createService()
 	if err != nil {
 		log.Printf("Unable to create drive service: %v", err)
@@ -213,11 +194,11 @@ func (g *GdriveClient) CreateFolder(name string) (*drive.File, error) {
 	return do, nil
 }
 
-func (g *GdriveClient) GetChildFolders(file *drive.File) (*drive.FileList, error) {
+func (g *Client) GetChildFolders(file *drive.File) (*drive.FileList, error) {
 	return g.query("mimeType='application/vnd.google-apps.folder' and '" + file.Id + "' in parents")
 }
 
-func (g *GdriveClient) FindChildFolder(parentFolder *drive.File, childName string) (*drive.File, error) {
+func (g *Client) FindChildFolder(parentFolder *drive.File, childName string) (*drive.File, error) {
 	r, err := g.query("mimeType='application/vnd.google-apps.folder' and '" + parentFolder.Id + "' in parents and name='" + childName + "'")
 	if err != nil {
 		log.Printf("Unable to retrieve directories: %v", err)
@@ -231,7 +212,7 @@ func (g *GdriveClient) FindChildFolder(parentFolder *drive.File, childName strin
 	return r.Files[0], nil
 }
 
-func (g *GdriveClient) CreateChildFolder(parentFolder *drive.File, childName string) (*drive.File, error) {
+func (g *Client) CreateChildFolder(parentFolder *drive.File, childName string) (*drive.File, error) {
 	service, err := g.createService()
 	if err != nil {
 		log.Printf("Unable to create drive service: %v", err)
@@ -250,7 +231,7 @@ func (g *GdriveClient) CreateChildFolder(parentFolder *drive.File, childName str
 	return do, nil
 }
 
-func (g *GdriveClient) CreateImageFile(parentId string, fileName string, imageBase64 *string) (*drive.File, error) {
+func (g *Client) CreateImageFile(parentId string, fileName string, imageBase64 *string) (*drive.File, error) {
 	service, err := g.createService()
 	if err != nil {
 		log.Printf("Unable to create drive service: %v", err)
