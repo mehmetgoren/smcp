@@ -3,26 +3,26 @@ package eb
 import (
 	"github.com/go-redis/redis/v8"
 	"log"
+	"smcp/data/cmn"
 	"smcp/models"
-	"smcp/reps"
 	"smcp/utils"
 )
 
 type FrEventHandler struct {
-	Fhr      *reps.FrHandlerRepository
+	Factory  *cmn.Factory
 	Notifier *NotifierPublisher
 }
 
 func (d *FrEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
-	var de = models.FaceRecognitionModel{}
-	err := utils.DeserializeJson(event.Payload, &de)
+	var fr = &models.FaceRecognitionModel{}
+	err := utils.DeserializeJson(event.Payload, fr)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
-	err = d.Fhr.Save(&de)
+	err = d.Factory.CreateRepository().FrSave(fr)
 	if err == nil {
 		go func() {
 			err := d.Notifier.Publish(&event.Payload, FaceRecognition)

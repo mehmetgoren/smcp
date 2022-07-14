@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/go-redis/redis/v8"
 	"log"
+	"smcp/data/cmn"
 	"smcp/eb"
 	"smcp/gdrive"
 	"smcp/models"
@@ -46,10 +47,15 @@ func main() {
 	}()
 
 	pubSubConn := reps.CreateRedisConnection(reps.EVENTBUS)
+
+	factory := &cmn.Factory{Config: config}
+	factory.Init()
+	defer factory.Close()
+
 	notifier := &eb.NotifierPublisher{PubSubConnection: pubSubConn}
 	cloudRep := &reps.CloudRepository{Connection: mainConn}
 	tbc, _ := tb.CreateTelegramBot(cloudRep)
-	pars := &ListenParams{Config: config, Tcb: tbc, CloudRep: cloudRep, MainConn: mainConn, PubSubConn: pubSubConn, Notifier: notifier}
+	pars := &ListenParams{Config: config, Tcb: tbc, CloudRep: cloudRep, MainConn: mainConn, PubSubConn: pubSubConn, Factory: factory, Notifier: notifier}
 	go listenOdEventHandlers(pars)
 	go listenFrEventHandler(pars)
 	listenAlprEventHandler(pars)
@@ -74,8 +80,7 @@ func createCloudEventHandlers(pars *ListenParams, aiType int) ([]eb.EventHandler
 
 func listenOdEventHandlers(pars *ListenParams) {
 	handlerList := make([]eb.EventHandler, 0)
-	ohr := &reps.OdHandlerRepository{Config: pars.Config}
-	var diskHandler = eb.OdEventHandler{Ohr: ohr, Notifier: pars.Notifier}
+	var diskHandler = eb.OdEventHandler{Factory: pars.Factory, Notifier: pars.Notifier}
 	handlerList = append(handlerList, &diskHandler)
 
 	//detection series handler
@@ -94,7 +99,7 @@ func listenOdEventHandlers(pars *ListenParams) {
 	// starts video clips processor
 	odqRep := reps.OdQueueRepository{Connection: pars.MainConn}
 	streamRep := reps.StreamRepository{Connection: pars.MainConn}
-	vcp := vc.AiClipProcessor{Config: pars.Config, OdqRep: &odqRep, StreamRep: &streamRep}
+	vcp := vc.AiClipProcessor{Config: pars.Config, OdqRep: &odqRep, StreamRep: &streamRep, Factory: pars.Factory}
 	go vcp.Start()
 	// ends video clips processor
 
@@ -108,8 +113,7 @@ func listenOdEventHandlers(pars *ListenParams) {
 
 func listenFrEventHandler(pars *ListenParams) {
 	handlerList := make([]eb.EventHandler, 0)
-	fhr := &reps.FrHandlerRepository{Config: pars.Config}
-	var diskHandler = eb.FrEventHandler{Fhr: fhr, Notifier: pars.Notifier}
+	var diskHandler = eb.FrEventHandler{Factory: pars.Factory, Notifier: pars.Notifier}
 	handlerList = append(handlerList, &diskHandler)
 
 	cloudHandlers, err := createCloudEventHandlers(pars, eb.FaceRecognition)
@@ -131,8 +135,7 @@ func listenFrEventHandler(pars *ListenParams) {
 
 func listenAlprEventHandler(pars *ListenParams) {
 	handlerList := make([]eb.EventHandler, 0)
-	ahr := &reps.AlprHandlerRepository{Config: pars.Config}
-	var diskHandler = eb.AlprEventHandler{Ahr: ahr, Notifier: pars.Notifier}
+	var diskHandler = eb.AlprEventHandler{Factory: pars.Factory, Notifier: pars.Notifier}
 	handlerList = append(handlerList, &diskHandler)
 
 	cloudHandlers, err := createCloudEventHandlers(pars, eb.PlateRecognition)
@@ -155,8 +158,11 @@ func listenAlprEventHandler(pars *ListenParams) {
 type ListenParams struct {
 	MainConn   *redis.Client
 	PubSubConn *redis.Client
-	Notifier   *eb.NotifierPublisher
-	Config     *models.Config
-	CloudRep   *reps.CloudRepository
-	Tcb        *tb.TelegramBotClient
+
+	Factory *cmn.Factory
+
+	Notifier *eb.NotifierPublisher
+	Config   *models.Config
+	CloudRep *reps.CloudRepository
+	Tcb      *tb.TelegramBotClient
 }

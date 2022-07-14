@@ -8,7 +8,7 @@ type TelegramBot struct {
 }
 
 type TelegramUser struct {
-	ID int `json:"id" redis:"id"`
+	ID int64 `json:"id" redis:"id"`
 
 	FirstName    string `json:"first_name" redis:"first_name"`
 	LastName     string `json:"last_name" redis:"last_name"`

@@ -1,13 +1,14 @@
 package vc
 
 import (
-	"encoding/json"
 	"github.com/go-co-op/gocron"
 	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
+	"smcp/data"
+	"smcp/data/cmn"
 	"smcp/models"
 	"smcp/reps"
 	"smcp/utils"
@@ -19,6 +20,8 @@ type AiClipProcessor struct {
 	Config    *models.Config
 	OdqRep    *reps.OdQueueRepository
 	StreamRep *reps.StreamRepository
+
+	Factory *cmn.Factory
 }
 
 func (v *AiClipProcessor) getAiRecordPath(sourceId string) string {
@@ -27,13 +30,6 @@ func (v *AiClipProcessor) getAiRecordPath(sourceId string) string {
 
 func (v *AiClipProcessor) getIndexedSourceVideosPath(clip *AiClipObject) string {
 	rootPath := utils.GetOdVideosPathBySourceId(v.Config, clip.SourceId)
-	ti := utils.TimeIndex{}
-	ti.SetValuesFrom(&clip.CreatedAtTime)
-	return ti.GetIndexedPath(rootPath)
-}
-
-func (v *AiClipProcessor) getIndexedSourceDataPath(clip *AiClipObject) string {
-	rootPath := path.Join(utils.GetOdDataPathBySourceId(v.Config, clip.SourceId))
 	ti := utils.TimeIndex{}
 	ti.SetValuesFrom(&clip.CreatedAtTime)
 	return ti.GetIndexedPath(rootPath)
@@ -101,6 +97,7 @@ func (v *AiClipProcessor) createVideoClipInfos() ([]*AiClipObject, error) {
 func (v *AiClipProcessor) move(clips []*AiClipObject) error {
 	defer utils.HandlePanic()
 
+	rep := v.Factory.CreateRepository()
 	for _, clip := range clips {
 		//move video clips' to persistent folder
 		oldLocation := path.Join(v.getAiRecordPath(clip.SourceId), clip.FileName)
@@ -114,43 +111,18 @@ func (v *AiClipProcessor) move(clips []*AiClipObject) error {
 		newLocation := path.Join(indexedSourceVideosPath, clip.FileName)
 		os.Rename(oldLocation, newLocation) //moves the short video clip file
 
-		//and also create a json file next to the video clip file for metadata
-		indexedSourceDataPath := v.getIndexedSourceDataPath(clip)
-		fileInfos, _ := ioutil.ReadDir(indexedSourceDataPath)
-		for _, fileInfo := range fileInfos {
-			splits := strings.Split(fileInfo.Name(), "_")
-			id := strings.Split(splits[len(splits)-1], ".")[0]
-			odModel := findOdModel(clip.ObjectDetectionModels, id)
-			if odModel == nil {
-				continue // if it doesn't match, do not mutate the file.
-			}
-
-			jsonDataFileName := path.Join(indexedSourceDataPath, fileInfo.Name())
-
-			//read json file
-			fileBytes, _ := ioutil.ReadFile(jsonDataFileName)
-			jo := &models.ObjectDetectionJsonObject{}
-			json.Unmarshal(fileBytes, jo)
-
-			//change the data
-			jo.Video.FileName = strings.Replace(newLocation, v.Config.General.RootFolderPath+"/", "", -1)
-			jo.Video.CreatedAt = clip.CreatedAt
-			jo.Video.LastModifiedAt = clip.LastModified
-			jo.Video.Duration = clip.Duration
-
-			//write json file
-			objectBytes, _ := json.Marshal(jo)
-			ioutil.WriteFile(jsonDataFileName, objectBytes, 0777)
-
+		if clip.ObjectDetectionModels == nil || len(clip.ObjectDetectionModels) == 0 {
+			continue
 		}
-	}
-	return nil
-}
+		for _, od := range clip.ObjectDetectionModels {
+			aiClipModel := data.AiClip{}
+			aiClipModel.Enabled = true
+			aiClipModel.FileName = strings.Replace(newLocation, v.Config.General.RootFolderPath+"/", "", -1)
+			aiClipModel.CreatedAt = clip.CreatedAt
+			aiClipModel.LastModifiedAt = clip.LastModified
+			aiClipModel.Duration = clip.Duration
 
-func findOdModel(list []*models.ObjectDetectionModel, id string) *models.ObjectDetectionModel {
-	for _, item := range list {
-		if item.Id == id {
-			return item
+			rep.SetOdVideoClipFields(od.Id, &aiClipModel)
 		}
 	}
 	return nil

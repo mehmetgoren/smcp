@@ -19,10 +19,6 @@ func getOdPath(config *models.Config) string {
 	return path.Join(config.General.RootFolderPath, "od")
 }
 
-func GetOdDataPathBySourceId(config *models.Config, sourceId string) string {
-	return path.Join(getOdPath(config), sourceId, "data")
-}
-
 func GetOdImagesPathBySourceId(config *models.Config, sourceId string) string {
 	return path.Join(getOdPath(config), sourceId, "images")
 }
@@ -70,10 +66,6 @@ func GetFrImagesPathBySourceId(config *models.Config, sourceId string) string {
 	return path.Join(getFrPath(config), sourceId, "images")
 }
 
-func GetFrDataPathBySourceId(config *models.Config, sourceId string) string {
-	return path.Join(getFrPath(config), sourceId, "data")
-}
-
 // alpr starts
 func getAlprPath(config *models.Config) string {
 	return path.Join(config.General.RootFolderPath, "alpr")
@@ -82,9 +74,3 @@ func getAlprPath(config *models.Config) string {
 func GetAlprImagesPathBySourceId(config *models.Config, sourceId string) string {
 	return path.Join(getAlprPath(config), sourceId, "images")
 }
-
-func GetAlprDataPathBySourceId(config *models.Config, sourceId string) string {
-	return path.Join(getAlprPath(config), sourceId, "data")
-}
-
-// alpr ends

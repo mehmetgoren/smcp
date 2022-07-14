@@ -3,13 +3,13 @@ package eb
 import (
 	"github.com/go-redis/redis/v8"
 	"log"
+	"smcp/data/cmn"
 	"smcp/models"
-	"smcp/reps"
 	"smcp/utils"
 )
 
 type AlprEventHandler struct {
-	Ahr      *reps.AlprHandlerRepository
+	Factory  *cmn.Factory
 	Notifier *NotifierPublisher
 }
 
@@ -22,7 +22,7 @@ func (a *AlprEventHandler) Handle(event *redis.Message) (interface{}, error) {
 		log.Println(err.Error())
 		return nil, err
 	}
-	err = a.Ahr.Save(&ar)
+	err = a.Factory.CreateRepository().AlprSave(&ar)
 	if err == nil {
 		go func() {
 			err := a.Notifier.Publish(&event.Payload, PlateRecognition)

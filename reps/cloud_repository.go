@@ -76,15 +76,15 @@ func (c *CloudRepository) AddTelegramUser(user *models.TelegramUser) (int64, err
 			return 0, nil
 		}
 	}
-	result, err := conn.HSet(context.Background(), getTelegramUserKey(strconv.Itoa(user.ID)), Map(user)).Result()
+	result, err := conn.HSet(context.Background(), getTelegramUserKey(strconv.FormatInt(user.ID, 10)), Map(user)).Result()
 	list = append(list, user)
 
 	return result, err
 }
 
-func (c *CloudRepository) RemoveTelegramUserById(telegramUserId int) error {
+func (c *CloudRepository) RemoveTelegramUserById(telegramUserId int64) error {
 	conn := c.Connection
-	_, err := conn.Del(context.Background(), getTelegramUserKey(strconv.Itoa(telegramUserId))).Result()
+	_, err := conn.Del(context.Background(), getTelegramUserKey(strconv.FormatInt(telegramUserId, 10))).Result()
 	if err != nil {
 		return err
 	}

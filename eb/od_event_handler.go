@@ -3,13 +3,13 @@ package eb
 import (
 	"github.com/go-redis/redis/v8"
 	"log"
+	"smcp/data/cmn"
 	"smcp/models"
-	"smcp/reps"
 	"smcp/utils"
 )
 
 type OdEventHandler struct {
-	Ohr      *reps.OdHandlerRepository
+	Factory  *cmn.Factory
 	Notifier *NotifierPublisher
 }
 
@@ -22,7 +22,7 @@ func (d *OdEventHandler) Handle(event *redis.Message) (interface{}, error) {
 		log.Println(err.Error())
 		return nil, err
 	}
-	err = d.Ohr.Save(&de)
+	err = d.Factory.CreateRepository().OdSave(&de)
 
 	if err == nil {
 		go func() {
