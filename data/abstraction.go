@@ -10,4 +10,6 @@ type Repository interface {
 	AlprSave(alpr *models.AlprResponse) error
 
 	SetOdVideoClipFields(groupId string, clip *AiClip) error
+
+	SetVideoFileNames(params *SetVideoFileNameParams) error
 }

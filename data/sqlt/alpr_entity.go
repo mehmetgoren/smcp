@@ -7,7 +7,7 @@ type DetectedPlate struct {
 	ImgHeight             int     `json:"img_height"`
 	TotalProcessingTimeMs float64 `json:"total_processing_time_ms"`
 
-	Plate            string  `json:"plate" gorm:"index:idx_query"` //Index
+	Plate            string  `json:"plate"`
 	Confidence       float64 `json:"confidence"`
 	ProcessingTimeMs float64 `json:"processing_time_ms"`
 

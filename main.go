@@ -58,7 +58,8 @@ func main() {
 	pars := &ListenParams{Config: config, Tcb: tbc, CloudRep: cloudRep, MainConn: mainConn, PubSubConn: pubSubConn, Factory: factory, Notifier: notifier}
 	go listenOdEventHandlers(pars)
 	go listenFrEventHandler(pars)
-	listenAlprEventHandler(pars)
+	go listenAlprEventHandler(pars)
+	listenVideoFilesEventHandlers(pars)
 }
 
 func createCloudEventHandlers(pars *ListenParams, aiType int) ([]eb.EventHandler, error) {
@@ -153,6 +154,12 @@ func listenAlprEventHandler(pars *ListenParams) {
 
 	var e = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "alpr_service"}
 	e.Subscribe(handler)
+}
+
+func listenVideoFilesEventHandlers(pars *ListenParams) {
+	var vfiHandler = &eb.VfiResponseEventHandler{Factory: pars.Factory}
+	var e = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "vfi_response"}
+	e.Subscribe(vfiHandler)
 }
 
 type ListenParams struct {
