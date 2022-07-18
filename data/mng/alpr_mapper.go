@@ -22,7 +22,7 @@ func (a *AlprMapper) Map(source *models.AlprResponse) []interface{} {
 		entity.ImgWidth = source.ImgWidth
 		entity.ImgHeight = source.ImgHeight
 		entity.TotalProcessingTimeMs = source.ProcessingTimeMs
-		entity.VideoFileName = ""
+		entity.VideoFile = &VideoFile{}
 		entity.DetectedPlate = &DetectedPlate{
 			Plate:            r.Plate,
 			Confidence:       r.Confidence,

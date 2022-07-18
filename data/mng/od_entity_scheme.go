@@ -25,7 +25,7 @@ func (o OdEntityScheme) CreateIndexes(coll *mongo.Collection) ([]string, error) 
 
 	indexes = append(indexes, mongo.IndexModel{
 		Keys: bson.M{
-			"video_file_name": 1, // index in descending order
+			"video_file.name": 1, // index in descending order
 		},
 	})
 

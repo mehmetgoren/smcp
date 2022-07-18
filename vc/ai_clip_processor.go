@@ -12,7 +12,6 @@ import (
 	"smcp/models"
 	"smcp/reps"
 	"smcp/utils"
-	"strings"
 	"time"
 )
 
@@ -116,12 +115,7 @@ func (v *AiClipProcessor) move(clips []*AiClipObject) error {
 		}
 		for _, od := range clip.ObjectDetectionModels {
 			aiClipModel := data.AiClip{}
-			aiClipModel.Enabled = true
-			aiClipModel.FileName = strings.Replace(newLocation, v.Config.General.RootFolderPath+"/", "", -1)
-			aiClipModel.CreatedAt = clip.CreatedAt
-			aiClipModel.LastModifiedAt = clip.LastModified
-			aiClipModel.Duration = clip.Duration
-
+			aiClipModel.Setup(newLocation, clip.CreatedAt, clip.LastModified, clip.Duration)
 			rep.SetOdVideoClipFields(od.Id, &aiClipModel)
 		}
 	}

@@ -18,7 +18,7 @@ func (f *FrMapper) Map(source *models.FaceRecognitionModel) []interface{} {
 		sio.MapFromFr(source)
 		imageFileName, _ := sio.SaveImage()
 		entity.ImageFileName = imageFileName
-		entity.VideoFileName = ""
+		entity.VideoFile = &VideoFile{}
 		entity.SetupDates(source.CreatedAt)
 		entity.DetectedFace = &DetectedFace{
 			PredClsName: do.PredClsName,

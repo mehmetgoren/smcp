@@ -11,5 +11,7 @@ type Repository interface {
 
 	SetOdVideoClipFields(groupId string, clip *AiClip) error
 
-	SetVideoFileNames(params *SetVideoFileNameParams) error
+	SetVideoFields(params *SetVideoFileParams) error
+
+	SetVideoFieldsMerged(params *SetVideoFileMergeParams) error
 }

@@ -57,7 +57,7 @@ func (s *SaveImageOptions) SaveImage() (string, error) {
 	log.Println("DiskEventHandler: image saved successfully as " + fullFileNameImage)
 	//
 
-	return strings.Replace(fullFileNameImage, s.Config.General.RootFolderPath+"/", "", -1), nil
+	return fullFileNameImage, nil
 }
 
 func (s *SaveImageOptions) MapFromOd(source *models.ObjectDetectionModel) {

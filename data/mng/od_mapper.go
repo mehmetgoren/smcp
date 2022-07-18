@@ -18,7 +18,7 @@ func (o *OdMapper) Map(source *models.ObjectDetectionModel) []interface{} {
 		sio.MapFromOd(source)
 		imageFileName, _ := sio.SaveImage()
 		entity.ImageFileName = imageFileName
-		entity.VideoFileName = ""
+		entity.VideoFile = &VideoFile{}
 		entity.SetupDates(source.CreatedAt)
 		entity.DetectedObject = &DetectedObject{
 			PredClsName: do.PredClsName,

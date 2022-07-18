@@ -159,7 +159,11 @@ func listenAlprEventHandler(pars *ListenParams) {
 func listenVideoFilesEventHandlers(pars *ListenParams) {
 	var vfiHandler = &eb.VfiResponseEventHandler{Factory: pars.Factory}
 	var e = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "vfi_response"}
-	e.Subscribe(vfiHandler)
+	go e.Subscribe(vfiHandler)
+
+	var vfmHandler = &eb.VfmResponseEventHandler{Factory: pars.Factory}
+	var e2 = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "vfm_response"}
+	e2.Subscribe(vfmHandler)
 }
 
 type ListenParams struct {

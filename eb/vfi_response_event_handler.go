@@ -6,7 +6,6 @@ import (
 	"smcp/data"
 	"smcp/data/cmn"
 	"smcp/utils"
-	"time"
 )
 
 type ProbeResult struct {
@@ -40,18 +39,10 @@ func (v *VfiResponseEventHandler) Handle(event *redis.Message) (interface{}, err
 	}
 
 	rep := v.Factory.CreateRepository()
-	for _, result := range results {
-		t1 := utils.StringToTime(result.DateStr)
-		t2 := t1.Add(time.Duration(result.Duration) * time.Second)
-
-		params := &data.SetVideoFileNameParams{}
-		params.SourceId = result.SourceId
-		params.VideoFilename = result.VideoFilename
-		params.T1 = &t1
-		params.T2 = &t2
-		params.Duration = result.Duration
-
-		err = rep.SetVideoFileNames(params)
+	for _, r := range results {
+		params := &data.SetVideoFileParams{}
+		params.Setup(r.SourceId, r.VideoFilename, r.DateStr, r.Duration)
+		err = rep.SetVideoFields(params)
 	}
 
 	return nil, err
