@@ -19,7 +19,7 @@ type BaseEntity struct {
 	ObjectAppearsAt      int        `json:"object_appears_at"`
 
 	AiClipEnabled           bool   `json:"ai_clip_enabled"`
-	AiClipFileName          string `json:"ai_clip_file_name" gorm:"index"` //Index
+	AiClipFileName          string `json:"ai_clip_file_name"`
 	AiClipCreatedAtStr      string `json:"ai_clip_created_at_str"`
 	AiClipLastModifiedAtStr string `json:"ai_clip_last_modified_at_str"`
 	AiClipDuration          int    `json:"ai_clip_duration"`

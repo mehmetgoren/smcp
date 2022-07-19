@@ -35,11 +35,5 @@ func (f FrEntityScheme) CreateIndexes(coll *mongo.Collection) ([]string, error) 
 		},
 	})
 
-	indexes = append(indexes, mongo.IndexModel{
-		Keys: bson.M{
-			"ai_clip.file_name": 1, // index in descending order
-		},
-	})
-
 	return coll.Indexes().CreateMany(context.TODO(), indexes)
 }
