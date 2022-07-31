@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"fmt"
 	"github.com/go-redsync/redsync/v4"
 	redsyncredis "github.com/go-redsync/redsync/v4/redis"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v8"
@@ -33,6 +32,10 @@ func (g *Client) getClient(config *oauth2.Config) *http.Client {
 	tok, err := g.Repository.GetGdriveToken()
 	if err != nil {
 		tok = g.getTokenFromWeb(config)
+		if tok != nil {
+			log.Println("gdrive token is null, no action taken")
+			return nil
+		}
 		err = g.Repository.SaveGdriveToken(tok)
 		if err != nil {
 			log.Println(err.Error())
@@ -46,33 +49,26 @@ func (g *Client) getClient(config *oauth2.Config) *http.Client {
 
 // Request a token from the web, then returns the retrieved token.
 func (g *Client) getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	err := g.Repository.SaveGdriveUrl(authURL)
-	if err != nil {
-		log.Printf(err.Error())
-		return nil
-	}
-	fmt.Printf("Go to the following link in your browser then type the "+
-		"authorization code: \n%v\n", authURL)
+	authCode, _ := g.Repository.GetGdriveAuthCode()
 
-	var authCode string
-	if _, err := fmt.Scan(&authCode); err != nil {
-		log.Printf("Unable to read authorization code %v", err)
-	}
-	if len(authCode) > 0 {
-		err = g.Repository.SaveGdriveAuthCode(authCode)
+	if len(authCode) == 0 {
+		//then generate URL to get AuthCode
+		authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+		err := g.Repository.SaveGdriveUrl(authURL)
 		if err != nil {
 			log.Printf(err.Error())
 			return nil
 		}
-	}
-
-	tok, err := config.Exchange(context.TODO(), authCode)
-	if err != nil {
-		log.Printf("Unable to retrieve token from web %v", err)
+		log.Printf("Auth Code has been saved : \n%v\n", authURL)
 		return nil
+	} else {
+		tok, err := config.Exchange(context.TODO(), authCode)
+		if err != nil {
+			log.Printf("Unable to retrieve token from web %v", err)
+			return nil
+		}
+		return tok
 	}
-	return tok
 }
 
 func (g *Client) createService() (*drive.Service, error) {

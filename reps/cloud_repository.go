@@ -185,6 +185,10 @@ func (c *CloudRepository) SaveGdriveUrl(url string) error {
 	return err
 }
 
+func (c *CloudRepository) GetGdriveAuthCode() (string, error) {
+	return c.getValue(getGdriveAuthCodeKey())
+}
+
 func (c *CloudRepository) SaveGdriveAuthCode(authCode string) error {
 	_, err := c.setValue(getGdriveAuthCodeKey(), authCode)
 	return err

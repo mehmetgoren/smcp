@@ -6,7 +6,7 @@ import (
 )
 
 type BaseEntity struct {
-	GroupId      string `json:"group_id" gorm:"index"`
+	GroupId      string `json:"group_id" gorm:"index"`             //Index
 	SourceId     string `json:"source_id"  gorm:"index:idx_query"` //Index
 	CreatedAtStr string `json:"created_at_str"`
 
