@@ -1,0 +1,2 @@
+docker build -t smcp:v1.0.0 .
+docker run -it --restart unless-stopped --name smcp-instance --net host -v /mnt/sde1:/mnt/sde1 smcp:v1.0.0

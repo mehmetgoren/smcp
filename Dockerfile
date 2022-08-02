@@ -1,12 +1,11 @@
-# sytntax=docker/dockerfile:1
+FROM golang:1.18.4
 
-FROM golang:1.16-alpine
+RUN mkdir /app
 
-ADD . /go/src/smcp
-WORKDIR /go/src/smcp
-RUN go get smcp
-RUN go install
-RUN mkdir /home/gokalp
-RUN mkdir /home/gokalp/Pictures
-RUN mkdir /home/gokalp/Pictures/detected
-ENTRYPOINT ["/go/bin/smcp"]
+ADD . /app
+
+WORKDIR /app
+
+RUN go build -o main .
+
+CMD ["/app/main"]
