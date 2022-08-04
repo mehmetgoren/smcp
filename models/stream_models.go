@@ -22,10 +22,10 @@ type StreamModel struct {
 	RtmpContainerPorts    string `json:"rtmp_container_ports" redis:"rtmp_container_ports"`
 	RtmpContainerCommands string `json:"rtmp_container_commands" redis:"rtmp_container_commands"`
 
-	FfmpegReaderPid       int `json:"ffmpeg_reader_pid" redis:"ffmpeg_reader_pid"`
-	FfmpegReaderFrameRate int `json:"ffmpeg_reader_frame_rate" redis:"ffmpeg_reader_frame_rate"`
-	FfmpegReaderWidth     int `json:"ffmpeg_reader_width" redis:"ffmpeg_reader_width"`
-	FfmpegReaderHeight    int `json:"ffmpeg_reader_height" redis:"ffmpeg_reader_height"`
+	MpFfmpegReaderOwnerPid int `json:"mp_ffmpeg_reader_owner_pid" redis:"mp_ffmpeg_reader_owner_pid"`
+	FfmpegReaderFrameRate  int `json:"ffmpeg_reader_frame_rate" redis:"ffmpeg_reader_frame_rate"`
+	FfmpegReaderWidth      int `json:"ffmpeg_reader_width" redis:"ffmpeg_reader_width"`
+	FfmpegReaderHeight     int `json:"ffmpeg_reader_height" redis:"ffmpeg_reader_height"`
 
 	RecordEnabled  bool   `json:"record_enabled" redis:"record_enabled"`
 	RecordPid      int    `json:"record_pid" redis:"record_pid"`
