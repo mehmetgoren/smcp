@@ -7,4 +7,4 @@ gokalpgoren
         docker run -it --restart unless-stopped --name smcp-instance --net host -v /mnt/sde1:/mnt/sde1 gokalpgoren/smcp:v1.0.0-amd64
     raspi4:
         docker build -t gokalpgoren/smcp:v1.0.0-raspi4 .
-        docker run -it --restart unless-stopped --name smcp-instance --net host -v /mnt/sde1:/mnt/sde1 -v /var/run/docker.sock:/var/run/docker.sock gokalpgoren/smcp:v1.0.0-raspi4
+        docker run -it --restart unless-stopped --name smcp-instance --net host -v /mnt/sde1:/mnt/sde1 gokalpgoren/smcp:v1.0.0-raspi4
