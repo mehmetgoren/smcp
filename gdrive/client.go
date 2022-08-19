@@ -32,7 +32,7 @@ func (g *Client) getClient(config *oauth2.Config) *http.Client {
 	tok, err := g.Repository.GetGdriveToken()
 	if err != nil {
 		tok = g.getTokenFromWeb(config)
-		if tok != nil {
+		if tok == nil {
 			log.Println("gdrive token is null, no action taken")
 			return nil
 		}
