@@ -1,6 +1,7 @@
 package vc
 
 import (
+	. "github.com/ahmetb/go-linq/v3"
 	"github.com/go-co-op/gocron"
 	"io/fs"
 	"io/ioutil"
@@ -28,7 +29,7 @@ func (v *AiClipProcessor) getAiRecordPath(sourceId string) string {
 }
 
 func (v *AiClipProcessor) getIndexedSourceVideosPath(clip *AiClipObject) string {
-	rootPath := utils.GetOdVideosPathBySourceId(v.Config, clip.SourceId)
+	rootPath := utils.GetAiClipPathBySourceId(v.Config, clip.SourceId)
 	ti := utils.TimeIndex{}
 	ti.SetValuesFrom(&clip.CreatedAtTime)
 	return ti.GetIndexedPath(rootPath)
@@ -41,7 +42,14 @@ var emptyFileInfos = make([]fs.FileInfo, 0)
 
 func (v *AiClipProcessor) getAiVideoFolders(sourceId string) []fs.FileInfo {
 	aiRootPath := v.getAiRecordPath(sourceId)
-	videoFiles, _ := ioutil.ReadDir(aiRootPath)
+	temp, _ := ioutil.ReadDir(aiRootPath)
+	videoFiles := make([]fs.FileInfo, 0)
+	for _, f := range temp {
+		if f.IsDir() {
+			continue
+		}
+		videoFiles = append(videoFiles, f)
+	}
 	if len(videoFiles) < 2 {
 		log.Println("no video clips found on the ai folder")
 		return emptyFileInfos
@@ -57,14 +65,36 @@ func (v *AiClipProcessor) createVideoClipInfos() ([]*AiClipObject, error) {
 
 	duration := v.Config.Ai.VideoClipDuration
 	allDetectedObjects, _ := v.OdqRep.PopAll()
-	streams, _ := v.StreamRep.GetAll()
-	for _, stream := range streams {
+	if len(allDetectedObjects) == 0 {
+		return hasDetectionVideoClips, nil
+	}
+
+	temp, err := v.StreamRep.GetAll()
+	if err != nil {
+		log.Println("an error has been occurred while getting a stream object, err: " + err.Error())
+		return hasDetectionVideoClips, err
+	}
+	streamDic := make(map[string]*StreamAiClipPair)
+	for _, stream := range temp {
 		if !stream.AiClipEnabled {
 			continue
 		}
-		sourceId := stream.Id
-		aiVideoFiles := v.getAiVideoFolders(sourceId)
-		for _, aiVideoFi := range aiVideoFiles {
+		aiVideoFiles := v.getAiVideoFolders(stream.Id)
+		if len(aiVideoFiles) == 0 {
+			continue
+		}
+		streamDic[stream.Id] = &StreamAiClipPair{Stream: stream, AiVideoFiles: aiVideoFiles}
+	}
+
+	for sourceId, pair := range streamDic {
+		allSourceDetectedObjects := make([]*models.ObjectDetectionModel, 0)
+		From(allDetectedObjects).Where(func(de interface{}) bool {
+			return de.(*models.ObjectDetectionModel).SourceId == sourceId
+		}).ToSlice(&allSourceDetectedObjects)
+		if len(allSourceDetectedObjects) == 0 {
+			continue
+		}
+		for _, aiVideoFi := range pair.AiVideoFiles {
 			aiFileName := aiVideoFi.Name()
 			vci := AiClipObject{}
 			vci.SourceId = sourceId
@@ -72,20 +102,20 @@ func (v *AiClipProcessor) createVideoClipInfos() ([]*AiClipObject, error) {
 			vci.FileName = aiFileName
 			vci.Duration = duration
 			vci.SetupDateTimes()
-			for _, detectedObject := range allDetectedObjects {
+			for _, detectedObject := range allSourceDetectedObjects {
 				createdAtTime := utils.StringToTime(detectedObject.CreatedAt)
 				if vci.IsInTimeSpan(createdAtTime) {
 					vci.ObjectDetectionModels = append(vci.ObjectDetectionModels, detectedObject)
 				}
 			}
-
 			if len(vci.ObjectDetectionModels) > 0 {
 				hasDetectionVideoClips = append(hasDetectionVideoClips, &vci)
 			} else {
 				//delete the non-object detection containing video files
 				aiRootPath := v.getAiRecordPath(sourceId)
-				os.Remove(path.Join(aiRootPath, aiFileName))
-				log.Println("an ai video file deleted: " + aiFileName)
+				fullAiFileName := path.Join(aiRootPath, aiFileName)
+				os.Remove(fullAiFileName)
+				log.Println("an ai video file deleted: " + fullAiFileName)
 			}
 		}
 	}
@@ -137,4 +167,9 @@ func (v *AiClipProcessor) Start() {
 	s.Every(v.Config.Ai.VideoClipDuration * multiplier).Seconds().Do(v.check)
 
 	s.StartAsync()
+}
+
+type StreamAiClipPair struct {
+	Stream       *models.StreamModel
+	AiVideoFiles []fs.FileInfo
 }

@@ -23,8 +23,8 @@ func GetOdImagesPathBySourceId(config *models.Config, sourceId string) string {
 	return path.Join(getOdPath(config), sourceId, "images")
 }
 
-func GetOdVideosPathBySourceId(config *models.Config, sourceId string) string {
-	return path.Join(getOdPath(config), sourceId, "videos")
+func GetAiClipPathBySourceId(config *models.Config, sourceId string) string {
+	return path.Join(GetRecordPath(config), sourceId, "ai")
 }
 
 var pool redsyncredis.Pool = nil
