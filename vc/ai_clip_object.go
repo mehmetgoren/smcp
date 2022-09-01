@@ -8,14 +8,14 @@ import (
 )
 
 type AiClipObject struct {
-	SourceId              string
-	ObjectDetectionModels []*models.ObjectDetectionModel
-	FileName              string
-	CreatedAt             string
-	LastModified          string
-	Duration              int
-	CreatedAtTime         time.Time
-	LastModifiedTime      time.Time
+	SourceId         string
+	AiQueueModels    []*models.AiClipQueueModel
+	FileName         string
+	CreatedAt        string
+	LastModified     string
+	Duration         int
+	CreatedAtTime    time.Time
+	LastModifiedTime time.Time
 }
 
 func (v *AiClipObject) SetupDateTimes() {

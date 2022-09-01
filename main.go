@@ -55,11 +55,20 @@ func main() {
 	notifier := &eb.NotifierPublisher{PubSubConnection: pubSubConn}
 	cloudRep := &reps.CloudRepository{Connection: mainConn}
 	tbc, _ := tb.CreateTelegramBot(cloudRep)
+
 	pars := &ListenParams{Config: config, Tcb: tbc, CloudRep: cloudRep, MainConn: mainConn, PubSubConn: pubSubConn, Factory: factory, Notifier: notifier}
+	startVideoClipProcessor(pars)
 	go listenOdEventHandlers(pars)
 	go listenFrEventHandler(pars)
 	go listenAlprEventHandler(pars)
 	listenVideoFilesEventHandlers(pars)
+}
+
+func startVideoClipProcessor(pars *ListenParams) {
+	odqRep := reps.AiClipQueueRepository{Connection: pars.MainConn}
+	streamRep := reps.StreamRepository{Connection: pars.MainConn}
+	vcp := vc.AiClipProcessor{Config: pars.Config, AiQuRep: &odqRep, StreamRep: &streamRep, Factory: pars.Factory}
+	go vcp.Start()
 }
 
 func createCloudEventHandlers(pars *ListenParams, aiType int) ([]eb.EventHandler, error) {
@@ -85,8 +94,8 @@ func listenOdEventHandlers(pars *ListenParams) {
 	handlerList = append(handlerList, &diskHandler)
 
 	//detection series handler
-	var vch = eb.OdAiClipEventHandler{Connection: pars.MainConn}
-	handlerList = append(handlerList, &vch)
+	var ace = eb.AiClipEventHandler{Connection: pars.MainConn, AiType: models.Od}
+	handlerList = append(handlerList, &ace)
 
 	cloudHandlers, err := createCloudEventHandlers(pars, eb.ObjectDetection)
 	if err == nil && cloudHandlers != nil && len(cloudHandlers) > 0 {
@@ -96,13 +105,6 @@ func listenOdEventHandlers(pars *ListenParams) {
 	} else {
 		log.Println("No Cloud Provider has been register for Object Detection")
 	}
-
-	// starts video clips processor
-	odqRep := reps.OdQueueRepository{Connection: pars.MainConn}
-	streamRep := reps.StreamRepository{Connection: pars.MainConn}
-	vcp := vc.AiClipProcessor{Config: pars.Config, OdqRep: &odqRep, StreamRep: &streamRep, Factory: pars.Factory}
-	go vcp.Start()
-	// ends video clips processor
 
 	var comboHandler = &eb.ComboEventHandler{
 		EventHandlers: handlerList,
@@ -116,6 +118,10 @@ func listenFrEventHandler(pars *ListenParams) {
 	handlerList := make([]eb.EventHandler, 0)
 	var diskHandler = eb.FrEventHandler{Factory: pars.Factory, Notifier: pars.Notifier}
 	handlerList = append(handlerList, &diskHandler)
+
+	//detection series handler
+	var ace = eb.AiClipEventHandler{Connection: pars.MainConn, AiType: models.Fr}
+	handlerList = append(handlerList, &ace)
 
 	cloudHandlers, err := createCloudEventHandlers(pars, eb.FaceRecognition)
 	if err == nil && cloudHandlers != nil && len(cloudHandlers) > 0 {
@@ -138,6 +144,10 @@ func listenAlprEventHandler(pars *ListenParams) {
 	handlerList := make([]eb.EventHandler, 0)
 	var diskHandler = eb.AlprEventHandler{Factory: pars.Factory, Notifier: pars.Notifier}
 	handlerList = append(handlerList, &diskHandler)
+
+	//detection series handler
+	var ace = eb.AiClipEventHandler{Connection: pars.MainConn, AiType: models.Alpr}
+	handlerList = append(handlerList, &ace)
 
 	cloudHandlers, err := createCloudEventHandlers(pars, eb.PlateRecognition)
 	if err == nil && cloudHandlers != nil && len(cloudHandlers) > 0 {

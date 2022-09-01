@@ -31,18 +31,51 @@ func (o *MongoRepository) AlprSave(alpr *models.AlprResponse) error {
 	return o.Db.Alprs.AddRange(entities)
 }
 
-func (o *MongoRepository) SetOdVideoClipFields(groupId string, clip *data.AiClip) error {
+func (o *MongoRepository) SetAiClipFields(groupId string, clip *data.AiClip) error {
 	if clip == nil {
 		return nil
 	}
-	founds, err := o.Db.Ods.GetByQuery(bson.M{"group_id": groupId})
+	var err error
+
+	//Od
+	odEntities, err := o.Db.Ods.GetByQuery(bson.M{"group_id": groupId})
 	if err != nil {
 		return err
 	}
-	if founds != nil && len(founds) > 0 {
+	if odEntities != nil && len(odEntities) > 0 {
 		ctx := context.TODO()
 		coll := o.Db.Ods.GetCollection()
-		for _, entity := range founds {
+		for _, entity := range odEntities {
+			entity.AiClip = clip
+			filter := bson.M{"_id": entity.Id}
+			_, err = coll.ReplaceOne(ctx, filter, entity)
+		}
+	}
+
+	//Fr
+	frEntities, err := o.Db.Frs.GetByQuery(bson.M{"group_id": groupId})
+	if err != nil {
+		return err
+	}
+	if frEntities != nil && len(frEntities) > 0 {
+		ctx := context.TODO()
+		coll := o.Db.Frs.GetCollection()
+		for _, entity := range frEntities {
+			entity.AiClip = clip
+			filter := bson.M{"_id": entity.Id}
+			_, err = coll.ReplaceOne(ctx, filter, entity)
+		}
+	}
+
+	//Alpr
+	alprEntities, err := o.Db.Alprs.GetByQuery(bson.M{"group_id": groupId})
+	if err != nil {
+		return err
+	}
+	if alprEntities != nil && len(alprEntities) > 0 {
+		ctx := context.TODO()
+		coll := o.Db.Alprs.GetCollection()
+		for _, entity := range alprEntities {
 			entity.AiClip = clip
 			filter := bson.M{"_id": entity.Id}
 			_, err = coll.ReplaceOne(ctx, filter, entity)

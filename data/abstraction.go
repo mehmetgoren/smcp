@@ -9,7 +9,7 @@ type Repository interface {
 	FrSave(fr *models.FaceRecognitionModel) error
 	AlprSave(alpr *models.AlprResponse) error
 
-	SetOdVideoClipFields(groupId string, clip *AiClip) error
+	SetAiClipFields(groupId string, clip *AiClip) error
 
 	SetVideoFields(params *SetVideoFileParams) error
 

@@ -28,21 +28,57 @@ func (s *SqliteRepository) AlprSave(alpr *models.AlprResponse) error {
 	return s.Db.Alprs.AddRange(entities)
 }
 
-func (s *SqliteRepository) SetOdVideoClipFields(groupId string, clip *data.AiClip) error {
-	db := s.Db.Ods.GetGormDb()
-	entities := make([]*OdEntity, 0)
-	db.Where(map[string]interface{}{"group_id": groupId}).Find(&entities)
-	if entities != nil && len(entities) > 0 {
-		for _, entity := range entities {
+func (s *SqliteRepository) SetAiClipFields(groupId string, clip *data.AiClip) error {
+	//Od
+	odDb := s.Db.Ods.GetGormDb()
+	odEntities := make([]*OdEntity, 0)
+	odDb.Where(map[string]interface{}{"group_id": groupId}).Find(&odEntities)
+	if odEntities != nil && len(odEntities) > 0 {
+		for _, entity := range odEntities {
 			entity.AiClipEnabled = clip.Enabled
 			entity.AiClipFileName = clip.FileName
 			entity.AiClipCreatedAtStr = clip.CreatedAt
 			entity.AiClipLastModifiedAtStr = clip.LastModifiedAt
 			entity.AiClipDuration = clip.Duration
 
-			db.Model(&entity).Updates(&entity)
+			odDb.Model(&entity).Updates(&entity)
 		}
 	}
+
+	//todo: Be careful, those are not tested.
+	//Fr
+	frDb := s.Db.Frs.GetGormDb()
+	frEntities := make([]*FrEntity, 0)
+	frDb.Where(map[string]interface{}{"group_id": groupId}).Find(&frEntities)
+	if frEntities != nil && len(frEntities) > 0 {
+		for _, entity := range frEntities {
+			entity.AiClipEnabled = clip.Enabled
+			entity.AiClipFileName = clip.FileName
+			entity.AiClipCreatedAtStr = clip.CreatedAt
+			entity.AiClipLastModifiedAtStr = clip.LastModifiedAt
+			entity.AiClipDuration = clip.Duration
+
+			frDb.Model(&entity).Updates(&entity)
+		}
+	}
+
+	//todo: Be careful, those are not tested.
+	//Alpr
+	alprDb := s.Db.Alprs.GetGormDb()
+	alprEntities := make([]*AlprEntity, 0)
+	alprDb.Where(map[string]interface{}{"group_id": groupId}).Find(&alprEntities)
+	if alprEntities != nil && len(alprEntities) > 0 {
+		for _, entity := range alprEntities {
+			entity.AiClipEnabled = clip.Enabled
+			entity.AiClipFileName = clip.FileName
+			entity.AiClipCreatedAtStr = clip.CreatedAt
+			entity.AiClipLastModifiedAtStr = clip.LastModifiedAt
+			entity.AiClipDuration = clip.Duration
+
+			alprDb.Model(&entity).Updates(&entity)
+		}
+	}
+
 	return nil
 }
 

@@ -13,12 +13,13 @@ import (
 	"smcp/models"
 	"smcp/reps"
 	"smcp/utils"
+	"strconv"
 	"time"
 )
 
 type AiClipProcessor struct {
 	Config    *models.Config
-	OdqRep    *reps.OdQueueRepository
+	AiQuRep   *reps.AiClipQueueRepository
 	StreamRep *reps.StreamRepository
 
 	Factory *cmn.Factory
@@ -64,7 +65,7 @@ func (v *AiClipProcessor) createVideoClipInfos() ([]*AiClipObject, error) {
 	hasDetectionVideoClips := make([]*AiClipObject, 0)
 
 	duration := v.Config.Ai.VideoClipDuration
-	allDetectedObjects, _ := v.OdqRep.PopAll()
+	allDetectedObjects, _ := v.AiQuRep.PopAll()
 	if len(allDetectedObjects) == 0 {
 		return hasDetectionVideoClips, nil
 	}
@@ -74,7 +75,7 @@ func (v *AiClipProcessor) createVideoClipInfos() ([]*AiClipObject, error) {
 		log.Println("an error has been occurred while getting a stream object, err: " + err.Error())
 		return hasDetectionVideoClips, err
 	}
-	streamDic := make(map[string]*StreamAiClipPair)
+	streamDic := make(map[string][]fs.FileInfo)
 	for _, stream := range temp {
 		if !stream.AiClipEnabled {
 			continue
@@ -83,32 +84,32 @@ func (v *AiClipProcessor) createVideoClipInfos() ([]*AiClipObject, error) {
 		if len(aiVideoFiles) == 0 {
 			continue
 		}
-		streamDic[stream.Id] = &StreamAiClipPair{Stream: stream, AiVideoFiles: aiVideoFiles}
+		streamDic[stream.Id] = aiVideoFiles
 	}
 
-	for sourceId, pair := range streamDic {
-		allSourceDetectedObjects := make([]*models.ObjectDetectionModel, 0)
+	for sourceId, aiClipFiles := range streamDic {
+		allSourceDetectedObjects := make([]*models.AiClipQueueModel, 0)
 		From(allDetectedObjects).Where(func(de interface{}) bool {
-			return de.(*models.ObjectDetectionModel).SourceId == sourceId
+			return predicateSourceId(de.(*models.AiClipQueueModel), sourceId)
 		}).ToSlice(&allSourceDetectedObjects)
 		if len(allSourceDetectedObjects) == 0 {
 			continue
 		}
-		for _, aiVideoFi := range pair.AiVideoFiles {
+		for _, aiVideoFi := range aiClipFiles {
 			aiFileName := aiVideoFi.Name()
 			vci := AiClipObject{}
 			vci.SourceId = sourceId
-			vci.ObjectDetectionModels = make([]*models.ObjectDetectionModel, 0)
+			vci.AiQueueModels = make([]*models.AiClipQueueModel, 0)
 			vci.FileName = aiFileName
 			vci.Duration = duration
 			vci.SetupDateTimes()
 			for _, detectedObject := range allSourceDetectedObjects {
-				createdAtTime := utils.StringToTime(detectedObject.CreatedAt)
+				createdAtTime := utils.StringToTime(getCreatedAt(detectedObject))
 				if vci.IsInTimeSpan(createdAtTime) {
-					vci.ObjectDetectionModels = append(vci.ObjectDetectionModels, detectedObject)
+					vci.AiQueueModels = append(vci.AiQueueModels, detectedObject)
 				}
 			}
-			if len(vci.ObjectDetectionModels) > 0 {
+			if len(vci.AiQueueModels) > 0 {
 				hasDetectionVideoClips = append(hasDetectionVideoClips, &vci)
 			} else {
 				//delete the non-object detection containing video files
@@ -140,13 +141,13 @@ func (v *AiClipProcessor) move(clips []*AiClipObject) error {
 		newLocation := path.Join(indexedSourceVideosPath, clip.FileName)
 		os.Rename(oldLocation, newLocation) //moves the short video clip file
 
-		if clip.ObjectDetectionModels == nil || len(clip.ObjectDetectionModels) == 0 {
+		if clip.AiQueueModels == nil || len(clip.AiQueueModels) == 0 {
 			continue
 		}
-		for _, od := range clip.ObjectDetectionModels {
+		for _, queueModel := range clip.AiQueueModels {
 			aiClipModel := data.AiClip{}
 			aiClipModel.Setup(newLocation, clip.CreatedAt, clip.LastModified, clip.Duration)
-			rep.SetOdVideoClipFields(od.Id, &aiClipModel)
+			rep.SetAiClipFields(getId(queueModel), &aiClipModel)
 		}
 	}
 	return nil
@@ -169,7 +170,41 @@ func (v *AiClipProcessor) Start() {
 	s.StartAsync()
 }
 
-type StreamAiClipPair struct {
-	Stream       *models.StreamModel
-	AiVideoFiles []fs.FileInfo
+func predicateSourceId(queueModel *models.AiClipQueueModel, sourceId string) bool {
+	switch queueModel.AiType {
+	case models.Od:
+		return queueModel.Od.SourceId == sourceId
+	case models.Fr:
+		return queueModel.Fr.SourceId == sourceId
+	case models.Alpr:
+		return queueModel.Alpr.SourceId == sourceId
+	}
+	log.Println("unsupported type has been detected, value is " + strconv.Itoa(queueModel.AiType))
+	return false
+}
+
+func getCreatedAt(queueModel *models.AiClipQueueModel) string {
+	switch queueModel.AiType {
+	case models.Od:
+		return queueModel.Od.CreatedAt
+	case models.Fr:
+		return queueModel.Fr.CreatedAt
+	case models.Alpr:
+		return queueModel.Alpr.CreatedAt
+	}
+	log.Println("unsupported type has been detected, value is " + strconv.Itoa(queueModel.AiType))
+	return ""
+}
+
+func getId(queueModel *models.AiClipQueueModel) string {
+	switch queueModel.AiType {
+	case models.Od:
+		return queueModel.Od.Id
+	case models.Fr:
+		return queueModel.Fr.Id
+	case models.Alpr:
+		return queueModel.Alpr.Id
+	}
+	log.Println("unsupported type has been detected, value is " + strconv.Itoa(queueModel.AiType))
+	return ""
 }
