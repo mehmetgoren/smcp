@@ -3,6 +3,7 @@ package data
 import (
 	"path/filepath"
 	"smcp/utils"
+	"sort"
 	"strings"
 	"time"
 )
@@ -30,6 +31,8 @@ type IVideoFile interface {
 	GetDuration(entity interface{}) int
 	GetEntitiesByNameAndMerged(videoFileName string, merged bool) ([]interface{}, error)
 	GetName(entity interface{}) string
+	GetObjectAppearsAt(entity interface{}) int
+	GetCreatedDate(entity interface{}) time.Time
 	SetObjectAppearsAt(entity interface{}, objectAppearsAt int)
 	SetName(entity interface{}, name string)
 	SetDuration(entity interface{}, duration int)
@@ -40,15 +43,24 @@ type IVideoFile interface {
 
 func GenericVideoFileFunc(vf IVideoFile, params *SetVideoFileMergeParams) error {
 	var err error
+	if params == nil || params.MergedVideoFilenames == nil || len(params.MergedVideoFilenames) == 0 {
+		return err
+	}
+	index := 0
 	prevMergedFileDuration := 0
-	prevMergedFiles, err := vf.GetEntitiesByName(params.OutputFileName)
+	prevMergedFiles, err := vf.GetEntitiesByName(params.OutputFileName) //sort yapıp al ,diğer türlü öncekini
 	if prevMergedFiles != nil && len(prevMergedFiles) > 0 {
-		prevMergedFileDuration = vf.GetDuration(prevMergedFiles[0])
+		sort.Slice(prevMergedFiles, func(i, j int) bool {
+			return vf.GetCreatedDate(prevMergedFiles[i]).Before(vf.GetCreatedDate(prevMergedFiles[j]))
+		})
+		prevMergedFileDuration = vf.GetDuration(prevMergedFiles[len(prevMergedFiles)-1])
+		index = 1
 	}
 
 	entities := make([]interface{}, 0)
 	cachedVideoFileDuration := make(map[string]int)
-	for _, vfn := range params.MergedVideoFilenames { //Merged Video Files are ordered by created date
+	for ; index < len(params.MergedVideoFilenames); index++ { //Merged Video Files are ordered by created date
+		vfn := params.MergedVideoFilenames[index]
 		results, err := vf.GetEntitiesByNameAndMerged(vfn, false)
 		if err == nil && results != nil && len(results) > 0 {
 			for _, entity := range results {
@@ -60,8 +72,13 @@ func GenericVideoFileFunc(vf IVideoFile, params *SetVideoFileMergeParams) error 
 			}
 		}
 	}
+	sort.Slice(entities, func(i, j int) bool {
+		return vf.GetCreatedDate(entities[i]).Before(vf.GetCreatedDate(entities[j]))
+	})
+
 	for _, entity := range entities {
-		vf.SetObjectAppearsAt(entity, cachedVideoFileDuration[vf.GetName(entity)])
+		appearsAt := vf.GetDuration(entity) - vf.GetObjectAppearsAt(entity)
+		vf.SetObjectAppearsAt(entity, appearsAt+cachedVideoFileDuration[vf.GetName(entity)])
 		vf.SetName(entity, params.OutputFileName)
 		vf.SetDuration(entity, params.MergedVideoFileDuration)
 		vf.SetMerged(entity, true)

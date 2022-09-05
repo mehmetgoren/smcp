@@ -173,6 +173,16 @@ func (o *OdVideoFile) GetName(entity interface{}) string {
 	return od.VideoFile.Name
 }
 
+func (o *OdVideoFile) GetObjectAppearsAt(entity interface{}) int {
+	od := entity.(*OdEntity)
+	return od.VideoFile.ObjectAppearsAt
+}
+
+func (o *OdVideoFile) GetCreatedDate(entity interface{}) time.Time {
+	od := entity.(*OdEntity)
+	return od.CreatedDate.Time()
+}
+
 func (o *OdVideoFile) SetObjectAppearsAt(entity interface{}, objectAppearsAt int) {
 	od := entity.(*OdEntity)
 	od.VideoFile.ObjectAppearsAt = objectAppearsAt
@@ -229,6 +239,16 @@ func (f *FrVideoFile) GetName(entity interface{}) string {
 	return fr.VideoFile.Name
 }
 
+func (f *FrVideoFile) GetObjectAppearsAt(entity interface{}) int {
+	fr := entity.(*FrEntity)
+	return fr.VideoFile.ObjectAppearsAt
+}
+
+func (f *FrVideoFile) GetCreatedDate(entity interface{}) time.Time {
+	fr := entity.(*FrEntity)
+	return fr.CreatedDate.Time()
+}
+
 func (f *FrVideoFile) SetObjectAppearsAt(entity interface{}, objectAppearsAt int) {
 	fr := entity.(*FrEntity)
 	fr.VideoFile.ObjectAppearsAt = objectAppearsAt
@@ -283,6 +303,16 @@ func (a *AlprVideoFile) GetEntitiesByNameAndMerged(videoFileName string, merged 
 func (a *AlprVideoFile) GetName(entity interface{}) string {
 	alpr := entity.(*AlprEntity)
 	return alpr.VideoFile.Name
+}
+
+func (a *AlprVideoFile) GetObjectAppearsAt(entity interface{}) int {
+	alpr := entity.(*AlprEntity)
+	return alpr.VideoFile.ObjectAppearsAt
+}
+
+func (a *AlprVideoFile) GetCreatedDate(entity interface{}) time.Time {
+	alpr := entity.(*AlprEntity)
+	return alpr.CreatedDate.Time()
 }
 
 func (a *AlprVideoFile) SetObjectAppearsAt(entity interface{}, objectAppearsAt int) {
