@@ -54,14 +54,18 @@ func main() {
 
 	notifier := &eb.NotifierPublisher{PubSubConnection: pubSubConn}
 	cloudRep := &reps.CloudRepository{Connection: mainConn}
-	tbc, _ := tb.CreateTelegramBot(cloudRep)
+	var tbc *tb.TelegramBotClient = nil
+	if cloudRep.IsTelegramIntegrationEnabled() {
+		tbc, _ = tb.CreateTelegramBot(cloudRep)
+	}
 
 	pars := &ListenParams{Config: config, Tcb: tbc, CloudRep: cloudRep, MainConn: mainConn, PubSubConn: pubSubConn, Factory: factory, Notifier: notifier}
 	startVideoClipProcessor(pars)
 	go listenOdEventHandlers(pars)
 	go listenFrEventHandler(pars)
 	go listenAlprEventHandler(pars)
-	listenVideoFilesEventHandlers(pars)
+	go listenVideoFilesEventHandlers(pars)
+	listenNotifyFailedEventHandler(pars)
 }
 
 func startVideoClipProcessor(pars *ListenParams) {
@@ -174,6 +178,12 @@ func listenVideoFilesEventHandlers(pars *ListenParams) {
 	var vfmHandler = &eb.VfmResponseEventHandler{Factory: pars.Factory}
 	var e2 = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "vfm_response"}
 	e2.Subscribe(vfmHandler)
+}
+
+func listenNotifyFailedEventHandler(pars *ListenParams) {
+	var nfh = &eb.NotifyFailedHandler{Notifier: pars.Notifier}
+	var e = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "notify_failed"}
+	e.Subscribe(nfh)
 }
 
 type ListenParams struct {

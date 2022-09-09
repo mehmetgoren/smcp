@@ -10,6 +10,7 @@ const (
 	ObjectDetection  = 0
 	FaceRecognition  = 1
 	PlateRecognition = 2
+	NotifyFailed     = 3
 )
 
 type NotifierInfo struct {
