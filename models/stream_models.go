@@ -46,6 +46,7 @@ type StreamModel struct {
 	ConcatDemuxerPid  int    `json:"concat_demuxer_pid" redis:"concat_demuxer_pid"`
 	ConcatDemuxerArgs string `json:"concat_demuxer_args" redis:"concat_demuxer_args"`
 
-	FlvPlayerType  int  `json:"flv_player_type" redis:"flv_player_type"`
-	BoosterEnabled bool `json:"booster_enabled" redis:"booster_enabled"`
+	FlvPlayerType            int  `json:"flv_player_type" redis:"flv_player_type"`
+	BoosterEnabled           bool `json:"booster_enabled" redis:"booster_enabled"`
+	LiveBufferLatencyChasing bool `json:"live_buffer_latency_chasing" redis:"live_buffer_latency_chasing"`
 }
