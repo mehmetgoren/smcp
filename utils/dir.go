@@ -8,29 +8,32 @@ import (
 	"log"
 	"os"
 	"path"
+	"smcp/abstract"
 	"smcp/models"
 )
 
-func GetRecordPath(config *models.Config) string {
-	return path.Join(config.General.RootFolderPath, "record")
+func GetRecordPath(dirPath string) string {
+	return path.Join(dirPath, "record")
 }
 
-func getOdPath(config *models.Config) string {
-	return path.Join(config.General.RootFolderPath, "od")
+func getOdPath(dirPath string) string {
+	return path.Join(dirPath, "od")
 }
 
 func GetOdImagesPathBySourceId(config *models.Config, sourceId string) string {
-	return path.Join(getOdPath(config), sourceId, "images")
+	sourceDirPath := getSourceDirPath(config, sourceId)
+	return path.Join(getOdPath(sourceDirPath), sourceId, "images")
 }
 
 func GetAiClipPathBySourceId(config *models.Config, sourceId string) string {
-	return path.Join(GetRecordPath(config), sourceId, "ai")
+	sourceDirPath := getSourceDirPath(config, sourceId)
+	return path.Join(GetRecordPath(sourceDirPath), sourceId, "ai")
 }
 
 var pool redsyncredis.Pool = nil
 
 func SetPool(conn *redis.Client) {
-	pool = goredis.NewPool(conn) // or, pool := redigo.NewPool(...)
+	pool = goredis.NewPool(conn)
 }
 
 func CreateDirectoryIfNotExists(directoryPath string) error {
@@ -58,19 +61,60 @@ func CreateDirectoryIfNotExists(directoryPath string) error {
 	return nil
 }
 
-func getFrPath(config *models.Config) string {
-	return path.Join(config.General.RootFolderPath, "fr")
+func getFrPath(dirPath string) string {
+	return path.Join(dirPath, "fr")
 }
 
 func GetFrImagesPathBySourceId(config *models.Config, sourceId string) string {
-	return path.Join(getFrPath(config), sourceId, "images")
+	sourceDirPath := getSourceDirPath(config, sourceId)
+	return path.Join(getFrPath(sourceDirPath), sourceId, "images")
 }
 
 // alpr starts
-func getAlprPath(config *models.Config) string {
-	return path.Join(config.General.RootFolderPath, "alpr")
+func getAlprPath(dirPath string) string {
+	return path.Join(dirPath, "alpr")
 }
 
 func GetAlprImagesPathBySourceId(config *models.Config, sourceId string) string {
-	return path.Join(getAlprPath(config), sourceId, "images")
+	sourceDirPath := getSourceDirPath(config, sourceId)
+	return path.Join(getAlprPath(sourceDirPath), sourceId, "images")
+}
+
+var sourceDirMaps *TTLMap[*models.StreamModel] = nil
+var streamRepository abstract.Repository[*models.StreamModel] = nil
+
+func SetDirParameters(sdm *TTLMap[*models.StreamModel], sr abstract.Repository[*models.StreamModel]) {
+	sourceDirMaps = sdm
+	streamRepository = sr
+}
+
+// getDefaultDirPath The first item of the dirPaths is default and the Deepstack backup file also use it
+func getDefaultDirPath(config *models.Config) string {
+	dirPaths := config.General.DirPaths
+	if dirPaths == nil || len(dirPaths) == 0 || dirPaths[0] == "" {
+		log.Fatal("Config.General.DirPaths is empty, the program will be terminated")
+	}
+	rootPath := dirPaths[0]
+	return rootPath
+}
+
+func getSourceDirPath(config *models.Config, sourceId string) string {
+	stream := sourceDirMaps.Get(sourceId)
+	var err error
+	if stream == nil {
+		stream, err = streamRepository.Get(sourceId)
+		if err != nil || stream == nil {
+			log.Fatal("An error occurred on getting source dir path, the process is now being ended, err: " + err.Error())
+			return ""
+		}
+		sourceDirMaps.Put(sourceId, stream)
+	}
+	sourceDirPath := ""
+	if len(stream.RootDirPath) > 0 {
+		sourceDirPath = stream.RootDirPath
+	} else {
+		sourceDirPath = getDefaultDirPath(config)
+	}
+
+	return sourceDirPath
 }

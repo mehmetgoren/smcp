@@ -13,6 +13,19 @@ type StreamRepository struct {
 
 var redisKeyStream = "streams:"
 
+func (r *StreamRepository) Get(id string) (*models.StreamModel, error) {
+	conn := r.Connection
+	key := redisKeyStream + id
+	var model models.StreamModel
+	err := conn.HGetAll(context.Background(), key).Scan(&model)
+	if err != nil {
+		log.Println("Error getting stream from redis: ", err)
+		return nil, err
+	}
+
+	return &model, nil
+}
+
 func (r *StreamRepository) GetAll() ([]*models.StreamModel, error) {
 	conn := r.Connection
 	keys, err := conn.Keys(context.Background(), redisKeyStream+"*").Result()

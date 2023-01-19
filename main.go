@@ -26,10 +26,10 @@ func createServiceRepository(client *redis.Client) *reps.ServiceRepository {
 }
 
 func main() {
-	defer utils.HandlePanic()
-
 	mainConn := reps.CreateRedisConnection(reps.MAIN)
 	utils.SetPool(mainConn)
+	utils.SetDirParameters(utils.NewTTLMap[*models.StreamModel](0, 60*15), // 15 minutes
+		&reps.StreamRepository{Connection: mainConn})
 
 	var configRep = reps.ConfigRepository{Connection: mainConn}
 	config, _ := configRep.GetConfig()

@@ -23,8 +23,8 @@ type Config struct {
 		MaxRetryIn int  `json:"max_retry_in"`
 	} `json:"source_reader"`
 	General struct {
-		RootFolderPath    string `json:"root_folder_path"`
-		HeartbeatInterval int    `json:"heartbeat_interval"`
+		DirPaths          []string `json:"dir_paths"`
+		HeartbeatInterval int      `json:"heartbeat_interval"`
 	} `json:"general"`
 	Db struct {
 		Type             int    `json:"type"` // 0 is SQLite, 1 is MongoDB

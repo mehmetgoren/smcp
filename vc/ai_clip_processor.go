@@ -26,11 +26,11 @@ type AiClipProcessor struct {
 }
 
 func (v *AiClipProcessor) getAiRecordPath(sourceId string) string {
-	return path.Join(utils.GetRecordPath(v.Config), sourceId, "ai")
+	return utils.GetAiClipPathBySourceId(v.Config, sourceId)
 }
 
 func (v *AiClipProcessor) getIndexedSourceVideosPath(clip *AiClipObject) string {
-	rootPath := utils.GetAiClipPathBySourceId(v.Config, clip.SourceId)
+	rootPath := v.getAiRecordPath(clip.SourceId)
 	ti := utils.TimeIndex{}
 	ti.SetValuesFrom(&clip.CreatedAtTime)
 	return ti.GetIndexedPath(rootPath)
