@@ -24,6 +24,10 @@ func (o *OdMapper) Map(source *models.ObjectDetectionModel) []interface{} {
 			PredClsName: do.PredClsName,
 			PredClsIdx:  do.PredClsIdx,
 			PredScore:   do.PredScore,
+			X1:          do.Box.X1,
+			Y1:          do.Box.Y1,
+			X2:          do.Box.X2,
+			Y2:          do.Box.Y2,
 		}
 		entity.AiClip = &data.AiClip{
 			Enabled:        source.AiClipEnabled,
@@ -31,6 +35,19 @@ func (o *OdMapper) Map(source *models.ObjectDetectionModel) []interface{} {
 			CreatedAt:      "",
 			LastModifiedAt: "",
 			Duration:       0,
+		}
+		if do.Metadata != nil {
+			entity.DetectedObject.Metadata = &Metadata{}
+			if do.Metadata.Colors != nil {
+				entity.DetectedObject.Metadata.Colors = make([]Color, 0)
+				for _, color := range do.Metadata.Colors {
+					entity.DetectedObject.Metadata.Colors = append(entity.DetectedObject.Metadata.Colors, Color{
+						R: color.R,
+						G: color.G,
+						B: color.B,
+					})
+				}
+			}
 		}
 		ret = append(ret, entity)
 	}

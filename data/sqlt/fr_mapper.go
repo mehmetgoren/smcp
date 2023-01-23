@@ -24,10 +24,10 @@ func (f *FrMapper) Map(source *models.FaceRecognitionModel) []*FrEntity {
 		entity.PredClsName = do.PredClsName
 		entity.PredClsIdx = do.PredClsIdx
 		entity.PredScore = do.PredScore
-		entity.X1 = do.X1
-		entity.Y1 = do.Y1
-		entity.X2 = do.X2
-		entity.Y2 = do.Y2
+		entity.X1 = do.Box.X1
+		entity.Y1 = do.Box.Y1
+		entity.X2 = do.Box.X2
+		entity.Y2 = do.Box.Y2
 		entity.AiClipEnabled = source.AiClipEnabled
 		entity.AiClipFileName = ""
 		entity.AiClipCreatedAtStr = ""

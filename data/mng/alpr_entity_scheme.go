@@ -18,6 +18,12 @@ func (a AlprEntityScheme) CreateIndexes(coll *mongo.Collection) ([]string, error
 
 	indexes = append(indexes, mongo.IndexModel{
 		Keys: bson.D{
+			{Key: "created_date", Value: 1},
+		},
+	})
+
+	indexes = append(indexes, mongo.IndexModel{
+		Keys: bson.D{
 			{Key: "source_id", Value: 1},
 			{Key: "created_date", Value: 1},
 		},
@@ -32,6 +38,12 @@ func (a AlprEntityScheme) CreateIndexes(coll *mongo.Collection) ([]string, error
 	indexes = append(indexes, mongo.IndexModel{
 		Keys: bson.M{
 			"group_id": 1, // index in descending order
+		},
+	})
+
+	indexes = append(indexes, mongo.IndexModel{
+		Keys: bson.M{
+			"detected_plate.plate": 1,
 		},
 	})
 

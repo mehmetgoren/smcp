@@ -24,6 +24,10 @@ func (o *OdMapper) Map(source *models.ObjectDetectionModel) []*OdEntity {
 		entity.PredScore = do.PredScore
 		entity.PredClsIdx = do.PredClsIdx
 		entity.PredClsName = do.PredClsName
+		entity.X1 = do.Box.X1
+		entity.Y1 = do.Box.Y1
+		entity.X2 = do.Box.X2
+		entity.Y2 = do.Box.Y2
 		entity.AiClipEnabled = source.AiClipEnabled
 		entity.AiClipFileName = ""
 		entity.AiClipCreatedAtStr = ""
