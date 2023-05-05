@@ -6,21 +6,21 @@ type StreamModel struct {
 	Name    string `json:"name" redis:"name"`
 	Address string `json:"address" redis:"address"`
 
-	RtmpFeederPid  int    `json:"rtmp_feeder_pid" redis:"rtmp_feeder_pid"`
-	RtmpFeederArgs string `json:"rtmp_feeder_args" redis:"rtmp_feeder_args"`
-	HlsPid         int    `json:"hls_pid" redis:"hls_pid"`
-	HlsArgs        string `json:"hls_args" redis:"hls_args"`
-	CreatedAt      string `json:"created_at" redis:"created_at"`
+	MsFeederPid  int    `json:"ms_feeder_pid" redis:"ms_feeder_pid"`
+	MSFeederArgs string `json:"ms_feeder_args" redis:"ms_feeder_args"`
+	HlsPid       int    `json:"hls_pid" redis:"hls_pid"`
+	HlsArgs      string `json:"hls_args" redis:"hls_args"`
+	CreatedAt    string `json:"created_at" redis:"created_at"`
 
-	StreamType            int    `json:"stream_type" redis:"stream_type"`
-	RtmpServerInitialized bool   `json:"rtmp_server_initialized" redis:"rtmp_server_initialized"`
-	RtmpServerType        int    `json:"rtmp_server_type" redis:"rtmp_server_type"`
-	RtmpImageName         string `json:"rtmp_image_name" redis:"rtmp_image_name"`
-	RtmpContainerName     string `json:"rtmp_container_name" redis:"rtmp_container_name"`
-	RtmpAddress           string `json:"rtmp_address" redis:"rtmp_address"`
-	RtmpFlvAddress        string `json:"rtmp_flv_address" redis:"rtmp_flv_address"`
-	RtmpContainerPorts    string `json:"rtmp_container_ports" redis:"rtmp_container_ports"`
-	RtmpContainerCommands string `json:"rtmp_container_commands" redis:"rtmp_container_commands"`
+	MsType              int    `json:"ms_type" redis:"ms_type"`
+	StreamType          int    `json:"stream_type" redis:"stream_type"`
+	MsInitialized       bool   `json:"ms_initialized" redis:"ms_initialized"`
+	MsImageName         string `json:"ms_image_name" redis:"ms_image_name"`
+	MsContainerName     string `json:"ms_container_name" redis:"ms_container_name"`
+	MsAddress           string `json:"ms_address" redis:"ms_address"`
+	MsStreamAddress     string `json:"ms_stream_address" redis:"ms_stream_address"`
+	MsContainerPorts    string `json:"ms_container_ports" redis:"ms_container_ports"`
+	MsContainerCommands string `json:"ms_container_commands" redis:"ms_container_commands"`
 
 	MpFfmpegReaderOwnerPid int `json:"mp_ffmpeg_reader_owner_pid" redis:"mp_ffmpeg_reader_owner_pid"`
 	FfmpegReaderFrameRate  int `json:"ffmpeg_reader_frame_rate" redis:"ffmpeg_reader_frame_rate"`
@@ -51,4 +51,14 @@ type StreamModel struct {
 	FlvPlayerType            int  `json:"flv_player_type" redis:"flv_player_type"`
 	BoosterEnabled           bool `json:"booster_enabled" redis:"booster_enabled"`
 	LiveBufferLatencyChasing bool `json:"live_buffer_latency_chasing" redis:"live_buffer_latency_chasing"`
+
+	Go2RtcPlayerMode int `json:"go2rtc_player_mode" redis:"go2rtc_player_mode"`
+}
+
+func (s *StreamModel) GetSourceId() string {
+	return s.Id
+}
+
+func (s *StreamModel) GetDirPath() string {
+	return s.RootDirPath
 }
