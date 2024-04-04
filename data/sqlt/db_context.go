@@ -10,27 +10,15 @@ import (
 type DbContext struct {
 	Config *models.Config
 
-	Ods   *DbSet[OdEntity]
-	Frs   *DbSet[FrEntity]
-	Alprs *DbSet[AlprEntity]
+	Ais *DbSet[AiEntity]
 }
 
 func (d *DbContext) Init() error {
 	p := path.Join(d.Config.Db.ConnectionString, "feniks.db")
 	db, _ := gorm.Open(sqlite.Open(p), &gorm.Config{})
-	d.Ods = &DbSet[OdEntity]{db: db}
-	d.Frs = &DbSet[FrEntity]{db: db}
-	d.Alprs = &DbSet[AlprEntity]{db: db}
+	d.Ais = &DbSet[AiEntity]{db: db}
 
-	err := d.Ods.Migrate()
-	if err != nil {
-		return err
-	}
-	err = d.Frs.Migrate()
-	if err != nil {
-		return err
-	}
-	err = d.Alprs.Migrate()
+	err := d.Ais.Migrate()
 
 	return err
 }

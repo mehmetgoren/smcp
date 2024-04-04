@@ -31,7 +31,6 @@ type ServiceModel struct {
 	InstanceType    InstanceType `json:"instance_type" redis:"instance_type"`
 	InstanceName    string       `json:"instance_name" redis:"instance_name"`
 	CreatedAt       string       `json:"created_at" redis:"created_at"`
-	Heartbeat       string       `json:"heartbeat" redis:"heartbeat"`
 }
 
 type ServiceRepository struct {
@@ -59,7 +58,6 @@ func (r *ServiceRepository) Add(serviceName string) (int64, error) {
 		InstanceType:    container,
 		InstanceName:    "smcp-instance",
 		CreatedAt:       utils.TimeToString(time.Now(), true),
-		Heartbeat:       "",
 	}
 
 	return r.Client.HSet(context.Background(), getKey(serviceName), Map(sm)).Result()

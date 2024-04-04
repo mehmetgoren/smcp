@@ -8,24 +8,25 @@ import (
 	"smcp/utils"
 )
 
-type FrEventHandler struct {
+type AiEventHandler struct {
 	Factory  *cmn.Factory
 	Notifier *NotifierPublisher
 }
 
-func (d *FrEventHandler) Handle(event *redis.Message) (interface{}, error) {
+func (d *AiEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
-	var fr = &models.FaceRecognitionModel{}
-	err := utils.DeserializeJson(event.Payload, fr)
+	var adm = models.AiDetectionModel{}
+	err := utils.DeserializeJson(event.Payload, &adm)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
-	err = d.Factory.CreateRepository().FrSave(fr)
+	err = d.Factory.CreateRepository().AiSave(&adm)
+
 	if err == nil {
 		go func() {
-			err := d.Notifier.Publish(&event.Payload, FaceRecognition)
+			err := d.Notifier.Publish(&event.Payload, AiDetection)
 			if err != nil {
 				log.Println(err.Error())
 			}

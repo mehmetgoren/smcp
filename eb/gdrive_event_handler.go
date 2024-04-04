@@ -9,13 +9,12 @@ import (
 
 type GdriveEventHandler struct {
 	*gdrive.FolderManager
-	AiType int
 }
 
 func (g *GdriveEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
-	ii, err := CreateImageInfo(event, g.AiType)
+	ii, err := CreateImageInfo(event)
 
 	file, err := g.UploadImage(ii.FileName, ii.Base64Image)
 	if err != nil {

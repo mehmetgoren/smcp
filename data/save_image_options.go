@@ -60,23 +60,9 @@ func (s *SaveImageOptions) SaveImage() (string, error) {
 	return fullFileNameImage, nil
 }
 
-func (s *SaveImageOptions) MapFromOd(source *models.ObjectDetectionModel) {
+func (s *SaveImageOptions) MapFromAi(source *models.AiDetectionModel) {
 	s.Base64Image = &source.Base64Image
 	s.CreatedAt = source.CreatedAt
-	s.ImagesPath = utils.GetOdImagesPathBySourceId(s.Config, source.SourceId)
-	s.FileName = source.CreateFileName()
-}
-
-func (s *SaveImageOptions) MapFromFr(source *models.FaceRecognitionModel) {
-	s.Base64Image = &source.Base64Image
-	s.CreatedAt = source.CreatedAt
-	s.ImagesPath = utils.GetFrImagesPathBySourceId(s.Config, source.SourceId)
-	s.FileName = source.CreateFileName()
-}
-
-func (s *SaveImageOptions) MapFromAlpr(source *models.AlprResponse) {
-	s.Base64Image = &source.Base64Image
-	s.CreatedAt = source.CreatedAt
-	s.ImagesPath = utils.GetAlprImagesPathBySourceId(s.Config, source.SourceId)
+	s.ImagesPath = utils.GetAiImagesPathBySourceId(s.Config, source.SourceId)
 	s.FileName = source.CreateFileName()
 }

@@ -26,14 +26,14 @@ type VfiResponseEventHandler struct {
 func (v *VfiResponseEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
-	var fr = &VfiResponseEvent{}
-	err := utils.DeserializeJson(event.Payload, fr)
+	var vre = &VfiResponseEvent{}
+	err := utils.DeserializeJson(event.Payload, vre)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
 
-	results := fr.Results
+	results := vre.Results
 	if results == nil && len(results) == 0 {
 		return nil, nil
 	}

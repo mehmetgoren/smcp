@@ -34,7 +34,6 @@ type StreamModel struct {
 
 	SnapshotEnabled   bool `json:"snapshot_enabled" redis:"snapshot_enabled"`
 	SnapshotPid       int  `json:"snapshot_pid" redis:"snapshot_pid"`
-	SnapshotType      int  `json:"snapshot_type" redis:"snapshot_type"`
 	SnapshotFrameRate int  `json:"snapshot_frame_rate" redis:"snapshot_frame_rate"`
 	SnapshotWidth     int  `json:"snapshot_width" redis:"snapshot_width"`
 	SnapshotHeight    int  `json:"snapshot_height" redis:"snapshot_height"`

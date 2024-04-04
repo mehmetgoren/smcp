@@ -15,6 +15,7 @@ func (c *ComboEventHandler) Handle(event *redis.Message) (interface{}, error) {
 			_, err := eventHandler.Handle(evt)
 			if err != nil {
 				log.Println("ComboEventHandler: An error occurred during the combo event handling")
+				log.Println(err)
 			}
 		}(ev, event)
 	}

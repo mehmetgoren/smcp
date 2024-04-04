@@ -5,9 +5,7 @@ import (
 )
 
 type Repository interface {
-	OdSave(od *models.ObjectDetectionModel) error
-	FrSave(fr *models.FaceRecognitionModel) error
-	AlprSave(alpr *models.AlprResponse) error
+	AiSave(ai *models.AiDetectionModel) error
 
 	SetAiClipFields(groupId string, clip *AiClip) error
 

@@ -6,14 +6,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type AlprEntityScheme struct {
+type AiEntityScheme struct {
 }
 
-func (a AlprEntityScheme) GetCollectionName() string {
-	return "alpr"
+func (o AiEntityScheme) GetCollectionName() string {
+	return "ai"
 }
 
-func (a AlprEntityScheme) CreateIndexes(coll *mongo.Collection) ([]string, error) {
+func (o AiEntityScheme) CreateIndexes(coll *mongo.Collection) ([]string, error) {
 	indexes := make([]mongo.IndexModel, 0)
 
 	indexes = append(indexes, mongo.IndexModel{
@@ -24,6 +24,7 @@ func (a AlprEntityScheme) CreateIndexes(coll *mongo.Collection) ([]string, error
 
 	indexes = append(indexes, mongo.IndexModel{
 		Keys: bson.D{
+			{Key: "module", Value: 1},
 			{Key: "source_id", Value: 1},
 			{Key: "created_date", Value: 1},
 		},
@@ -43,7 +44,7 @@ func (a AlprEntityScheme) CreateIndexes(coll *mongo.Collection) ([]string, error
 
 	indexes = append(indexes, mongo.IndexModel{
 		Keys: bson.M{
-			"detected_plate.plate": 1,
+			"detected_object.pred_cls_name": 1,
 		},
 	})
 

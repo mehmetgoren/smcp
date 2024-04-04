@@ -15,38 +15,18 @@ type AiClipQueueRepository struct {
 
 var key = "aiclipseries"
 
-func (a *AiClipQueueRepository) Add(aiType int, payloadJson *string) error {
-	queueModel := &models.AiClipQueueModel{AiType: aiType}
+// todo: remove Unmarshal and Marshal operations if it is not necessary
+func (a *AiClipQueueRepository) Add(payloadJson *string) error {
+	queueModel := &models.AiClipQueueModel{}
 	var err error
-	switch aiType {
-	case models.Od:
-		od := &models.ObjectDetectionModel{}
-		err = json.Unmarshal([]byte(*payloadJson), od)
-		if err != nil {
-			log.Println("an error occurred while deserializing an od model")
-			return err
-		}
-		queueModel.Od = od
-		break
-	case models.Fr:
-		fr := &models.FaceRecognitionModel{}
-		err = json.Unmarshal([]byte(*payloadJson), fr)
-		if err != nil {
-			log.Println("an error occurred while deserializing an fr model")
-			return err
-		}
-		queueModel.Fr = fr
-		break
-	case models.Alpr:
-		alpr := &models.AlprResponse{}
-		err = json.Unmarshal([]byte(*payloadJson), alpr)
-		if err != nil {
-			log.Println("an error occurred while deserializing an alpr model")
-			return err
-		}
-		queueModel.Alpr = alpr
-		break
+
+	ai := &models.AiDetectionModel{}
+	err = json.Unmarshal([]byte(*payloadJson), ai)
+	if err != nil {
+		log.Println("an error occurred while deserializing an ai model")
+		return err
 	}
+	queueModel.Ai = ai
 	modelJson, err := json.Marshal(queueModel)
 	if err != nil {
 		log.Println("an error occurred while ")

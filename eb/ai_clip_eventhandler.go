@@ -8,13 +8,12 @@ import (
 
 type AiClipEventHandler struct {
 	Connection *redis.Client
-	AiType     int
 }
 
 func (a *AiClipEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 	rep := reps.AiClipQueueRepository{Connection: a.Connection}
-	err := rep.Add(a.AiType, &event.Payload)
+	err := rep.Add(&event.Payload)
 	if err != nil {
 		return false, err
 	}

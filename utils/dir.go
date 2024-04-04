@@ -16,13 +16,13 @@ func GetRecordPath(dirPath string) string {
 	return path.Join(dirPath, "record")
 }
 
-func getOdPath(dirPath string) string {
-	return path.Join(dirPath, "od")
+func getAiPath(dirPath string) string {
+	return path.Join(dirPath, "ai")
 }
 
-func GetOdImagesPathBySourceId(config *models.Config, sourceId string) string {
+func GetAiImagesPathBySourceId(config *models.Config, sourceId string) string {
 	sourceDirPath := getSourceDirPath(config, sourceId)
-	return path.Join(getOdPath(sourceDirPath), sourceId, "images")
+	return path.Join(getAiPath(sourceDirPath), sourceId, "images")
 }
 
 func GetAiClipPathBySourceId(config *models.Config, sourceId string) string {
@@ -61,25 +61,6 @@ func CreateDirectoryIfNotExists(directoryPath string) error {
 	return nil
 }
 
-func getFrPath(dirPath string) string {
-	return path.Join(dirPath, "fr")
-}
-
-func GetFrImagesPathBySourceId(config *models.Config, sourceId string) string {
-	sourceDirPath := getSourceDirPath(config, sourceId)
-	return path.Join(getFrPath(sourceDirPath), sourceId, "images")
-}
-
-// alpr starts
-func getAlprPath(dirPath string) string {
-	return path.Join(dirPath, "alpr")
-}
-
-func GetAlprImagesPathBySourceId(config *models.Config, sourceId string) string {
-	sourceDirPath := getSourceDirPath(config, sourceId)
-	return path.Join(getAlprPath(sourceDirPath), sourceId, "images")
-}
-
 var sourceDirMaps *TTLMap[*models.StreamModel] = nil
 var streamRepository abstract.Repository[*models.StreamModel] = nil
 
@@ -88,7 +69,7 @@ func SetDirParameters(sdm *TTLMap[*models.StreamModel], sr abstract.Repository[*
 	streamRepository = sr
 }
 
-// getDefaultDirPath The first item of the dirPaths is default and the Deepstack backup file also use it
+// getDefaultDirPath The first item of the dirPaths is default and the SenseAI backup file also use it
 func getDefaultDirPath(config *models.Config) string {
 	dirPaths := config.General.DirPaths
 	if dirPaths == nil || len(dirPaths) == 0 || dirPaths[0] == "" {

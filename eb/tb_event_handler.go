@@ -2,7 +2,6 @@ package eb
 
 import (
 	"encoding/base64"
-	"errors"
 	"github.com/go-redis/redis/v8"
 	"gopkg.in/tucnak/telebot.v2"
 	"io/ioutil"
@@ -10,7 +9,6 @@ import (
 	"smcp/models"
 	"smcp/tb"
 	"smcp/utils"
-	"strconv"
 	"strings"
 )
 
@@ -19,71 +17,34 @@ type ImageInfo struct {
 	Base64Image *string
 }
 
-func CreateImageInfo(event *redis.Message, aiType int) (*ImageInfo, error) {
+func CreateImageInfo(event *redis.Message) (*ImageInfo, error) {
 	ret := &ImageInfo{}
-	switch aiType {
-	case ObjectDetection:
-		var de = models.ObjectDetectionModel{}
-		err := utils.DeserializeJson(event.Payload, &de)
-		if err != nil {
-			return nil, err
-		}
-		ret.FileName = de.CreateFileName()
-		if de.DetectedObjects != nil && len(de.DetectedObjects) > 0 {
-			arr := make([]string, 0)
-			for _, do := range de.DetectedObjects {
-				arr = append(arr, do.PredClsName)
-			}
-			ret.FileName = strings.Join(arr, ", ")
-		}
-		ret.Base64Image = &de.Base64Image
-		break
-	case FaceRecognition:
-		var fr = models.FaceRecognitionModel{}
-		err := utils.DeserializeJson(event.Payload, &fr)
-		if err != nil {
-			return nil, err
-		}
-		ret.FileName = fr.CreateFileName()
-		if fr.DetectedFaces != nil && len(fr.DetectedFaces) > 0 {
-			arr := make([]string, 0)
-			for _, df := range fr.DetectedFaces {
-				arr = append(arr, df.PredClsName)
-			}
-			ret.FileName = strings.Join(arr, ", ")
-		}
-		ret.Base64Image = &fr.Base64Image
-		break
-	case PlateRecognition:
-		alpr := models.AlprResponse{}
-		err := utils.DeserializeJson(event.Payload, &alpr)
-		if err != nil {
-			return nil, err
-		}
-		ret.FileName = alpr.CreateFileName()
-		if alpr.Results != nil && len(alpr.Results) > 0 {
-			arr := make([]string, 0)
-			for _, r := range alpr.Results {
-				arr = append(arr, r.Plate)
-			}
-			ret.FileName = strings.Join(arr[:], ", ")
-		}
-		ret.Base64Image = &alpr.Base64Image
-	default:
-		return nil, errors.New("Not Supported " + strconv.Itoa(aiType))
+	var adm = models.AiDetectionModel{}
+	err := utils.DeserializeJson(event.Payload, &adm)
+	if err != nil {
+		return nil, err
 	}
+	ret.FileName = adm.CreateFileName()
+	if adm.Detections != nil && len(adm.Detections) > 0 {
+		arr := make([]string, 0)
+		for _, do := range adm.Detections {
+			arr = append(arr, do.Label)
+		}
+		ret.FileName = strings.Join(arr, ", ")
+	}
+	ret.Base64Image = &adm.Base64Image
+
 	return ret, nil
 }
 
-type OdTelegramEventHandler struct {
+type TelegramEventHandler struct {
 	*tb.TelegramBotClient
-	AiType int
 }
 
-func (t *OdTelegramEventHandler) Handle(event *redis.Message) (interface{}, error) {
+func (t *TelegramEventHandler) Handle(event *redis.Message) (interface{}, error) {
 	defer utils.HandlePanic()
 
-	ii, err := CreateImageInfo(event, t.AiType)
+	ii, err := CreateImageInfo(event)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +62,11 @@ func (t *OdTelegramEventHandler) Handle(event *redis.Message) (interface{}, erro
 	for _, user := range users {
 		msg, sendErr := t.Bot.Send(user.MapTo(), tbPhoto)
 		if sendErr != nil {
-			log.Println("TelegramEventHandler: Send error for " + msg.Caption + ". The error is " + sendErr.Error())
+			caption := ""
+			if msg != nil {
+				caption = msg.Caption
+			}
+			log.Println("TelegramEventHandler: Send error for " + caption + ". The error is " + sendErr.Error())
 			return nil, sendErr
 		}
 	}

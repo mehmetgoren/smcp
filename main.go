@@ -13,12 +13,6 @@ import (
 	"smcp/vc"
 )
 
-func createHeartbeatRepository(client *redis.Client, serviceName string, config *models.Config) *reps.HeartbeatRepository {
-	var heartbeatRepository = reps.HeartbeatRepository{Client: client, TimeSecond: int64(config.General.HeartbeatInterval), ServiceName: serviceName}
-
-	return &heartbeatRepository
-}
-
 func createServiceRepository(client *redis.Client) *reps.ServiceRepository {
 	var pidRepository = reps.ServiceRepository{Client: client}
 
@@ -35,9 +29,6 @@ func main() {
 	config, _ := configRep.GetConfig()
 
 	serviceName := "cloud_integration_service"
-	heartbeat := createHeartbeatRepository(mainConn, serviceName, config)
-	go heartbeat.Start()
-
 	serviceRepository := createServiceRepository(mainConn)
 	go func() {
 		_, err := serviceRepository.Add(serviceName)
@@ -61,9 +52,7 @@ func main() {
 
 	pars := &ListenParams{Config: config, Tcb: tbc, CloudRep: cloudRep, MainConn: mainConn, PubSubConn: pubSubConn, Factory: factory, Notifier: notifier}
 	startVideoClipProcessor(pars)
-	go listenOdEventHandlers(pars)
-	go listenFrEventHandler(pars)
-	go listenAlprEventHandler(pars)
+	go listenAiEventHandlers(pars)
 	go listenVideoFilesEventHandlers(pars)
 	listenNotifyFailedEventHandler(pars)
 }
@@ -75,99 +64,47 @@ func startVideoClipProcessor(pars *ListenParams) {
 	go vcp.Start()
 }
 
-func createCloudEventHandlers(pars *ListenParams, aiType int) ([]eb.EventHandler, error) {
+func createCloudEventHandlers(pars *ListenParams) ([]eb.EventHandler, error) {
 	handlerList := make([]eb.EventHandler, 0)
 	if pars.CloudRep.IsTelegramIntegrationEnabled() {
-		var tbHandler eb.EventHandler = &eb.OdTelegramEventHandler{TelegramBotClient: pars.Tcb, AiType: aiType}
+		var tbHandler eb.EventHandler = &eb.TelegramEventHandler{TelegramBotClient: pars.Tcb}
 		handlerList = append(handlerList, tbHandler)
 	}
 
 	if pars.CloudRep.IsGdriveIntegrationEnabled() {
 		var fm = &gdrive.FolderManager{Redis: pars.MainConn, Client: &gdrive.Client{}}
 		fm.Client.Repository = pars.CloudRep
-		var gHandler = &eb.GdriveEventHandler{FolderManager: fm, AiType: aiType}
+		var gHandler = &eb.GdriveEventHandler{FolderManager: fm}
 		handlerList = append(handlerList, gHandler)
 	}
 
 	return handlerList, nil
 }
 
-func listenOdEventHandlers(pars *ListenParams) {
+func listenAiEventHandlers(pars *ListenParams) {
 	handlerList := make([]eb.EventHandler, 0)
-	var diskHandler = eb.OdEventHandler{Factory: pars.Factory, Notifier: pars.Notifier}
+	var diskHandler = eb.AiEventHandler{Factory: pars.Factory, Notifier: pars.Notifier}
 	handlerList = append(handlerList, &diskHandler)
 
 	//detection series handler
-	var ace = eb.AiClipEventHandler{Connection: pars.MainConn, AiType: models.Od}
+	var ace = eb.AiClipEventHandler{Connection: pars.MainConn}
 	handlerList = append(handlerList, &ace)
 
-	cloudHandlers, err := createCloudEventHandlers(pars, eb.ObjectDetection)
+	cloudHandlers, err := createCloudEventHandlers(pars)
 	if err == nil && cloudHandlers != nil && len(cloudHandlers) > 0 {
 		for _, ch := range cloudHandlers {
 			handlerList = append(handlerList, ch)
 		}
 	} else {
-		log.Println("No Cloud Provider has been register for Object Detection")
+		log.Println("No Cloud Provider has been register for AI Detection")
 	}
 
 	var comboHandler = &eb.ComboEventHandler{
 		EventHandlers: handlerList,
 	}
 
-	var e = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "od_service"}
+	var e = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "smcp_in"}
 	e.Subscribe(comboHandler)
-}
-
-func listenFrEventHandler(pars *ListenParams) {
-	handlerList := make([]eb.EventHandler, 0)
-	var diskHandler = eb.FrEventHandler{Factory: pars.Factory, Notifier: pars.Notifier}
-	handlerList = append(handlerList, &diskHandler)
-
-	//detection series handler
-	var ace = eb.AiClipEventHandler{Connection: pars.MainConn, AiType: models.Fr}
-	handlerList = append(handlerList, &ace)
-
-	cloudHandlers, err := createCloudEventHandlers(pars, eb.FaceRecognition)
-	if err == nil && cloudHandlers != nil && len(cloudHandlers) > 0 {
-		for _, ch := range cloudHandlers {
-			handlerList = append(handlerList, ch)
-		}
-	} else {
-		log.Println("No Cloud Provider has been register for Face Recognition")
-	}
-
-	var handler = &eb.ComboEventHandler{
-		EventHandlers: handlerList,
-	}
-
-	var e = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "fr_service"}
-	e.Subscribe(handler)
-}
-
-func listenAlprEventHandler(pars *ListenParams) {
-	handlerList := make([]eb.EventHandler, 0)
-	var diskHandler = eb.AlprEventHandler{Factory: pars.Factory, Notifier: pars.Notifier}
-	handlerList = append(handlerList, &diskHandler)
-
-	//detection series handler
-	var ace = eb.AiClipEventHandler{Connection: pars.MainConn, AiType: models.Alpr}
-	handlerList = append(handlerList, &ace)
-
-	cloudHandlers, err := createCloudEventHandlers(pars, eb.PlateRecognition)
-	if err == nil && cloudHandlers != nil && len(cloudHandlers) > 0 {
-		for _, ch := range cloudHandlers {
-			handlerList = append(handlerList, ch)
-		}
-	} else {
-		log.Println("No Cloud Provider has been register for License Plate Recognition")
-	}
-
-	var handler = &eb.ComboEventHandler{
-		EventHandlers: handlerList,
-	}
-
-	var e = eb.EventBus{PubSubConnection: pars.PubSubConn, Channel: "alpr_service"}
-	e.Subscribe(handler)
 }
 
 func listenVideoFilesEventHandlers(pars *ListenParams) {

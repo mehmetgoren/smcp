@@ -13,22 +13,10 @@ type MongoRepository struct {
 	Db *DbContext
 }
 
-func (o *MongoRepository) OdSave(od *models.ObjectDetectionModel) error {
-	m := OdMapper{Config: o.Db.Config}
-	entities := m.Map(od)
-	return o.Db.Ods.AddRange(entities)
-}
-
-func (o *MongoRepository) FrSave(fr *models.FaceRecognitionModel) error {
-	m := FrMapper{Config: o.Db.Config}
-	entities := m.Map(fr)
-	return o.Db.Frs.AddRange(entities)
-}
-
-func (o *MongoRepository) AlprSave(alpr *models.AlprResponse) error {
-	m := AlprMapper{Config: o.Db.Config}
-	entities := m.Map(alpr)
-	return o.Db.Alprs.AddRange(entities)
+func (o *MongoRepository) AiSave(ai *models.AiDetectionModel) error {
+	m := AiMapper{Config: o.Db.Config}
+	entities := m.Map(ai)
+	return o.Db.Ais.AddRange(entities)
 }
 
 func (o *MongoRepository) SetAiClipFields(groupId string, clip *data.AiClip) error {
@@ -37,45 +25,14 @@ func (o *MongoRepository) SetAiClipFields(groupId string, clip *data.AiClip) err
 	}
 	var err error
 
-	//Od
-	odEntities, err := o.Db.Ods.GetByQuery(bson.M{"group_id": groupId})
+	aiEntities, err := o.Db.Ais.GetByQuery(bson.M{"group_id": groupId})
 	if err != nil {
 		return err
 	}
-	if odEntities != nil && len(odEntities) > 0 {
+	if aiEntities != nil && len(aiEntities) > 0 {
 		ctx := context.TODO()
-		coll := o.Db.Ods.GetCollection()
-		for _, entity := range odEntities {
-			entity.AiClip = clip
-			filter := bson.M{"_id": entity.Id}
-			_, err = coll.ReplaceOne(ctx, filter, entity)
-		}
-	}
-
-	//Fr
-	frEntities, err := o.Db.Frs.GetByQuery(bson.M{"group_id": groupId})
-	if err != nil {
-		return err
-	}
-	if frEntities != nil && len(frEntities) > 0 {
-		ctx := context.TODO()
-		coll := o.Db.Frs.GetCollection()
-		for _, entity := range frEntities {
-			entity.AiClip = clip
-			filter := bson.M{"_id": entity.Id}
-			_, err = coll.ReplaceOne(ctx, filter, entity)
-		}
-	}
-
-	//Alpr
-	alprEntities, err := o.Db.Alprs.GetByQuery(bson.M{"group_id": groupId})
-	if err != nil {
-		return err
-	}
-	if alprEntities != nil && len(alprEntities) > 0 {
-		ctx := context.TODO()
-		coll := o.Db.Alprs.GetCollection()
-		for _, entity := range alprEntities {
+		coll := o.Db.Ais.GetCollection()
+		for _, entity := range aiEntities {
 			entity.AiClip = clip
 			filter := bson.M{"_id": entity.Id}
 			_, err = coll.ReplaceOne(ctx, filter, entity)
@@ -105,36 +62,13 @@ func (o *MongoRepository) SetVideoFields(params *data.SetVideoFileParams) error 
 	q := bson.M{"source_id": params.SourceId, "created_date": bson.M{"$gte": params.T1, "$lte": params.T2}}
 	ctx := context.TODO()
 
-	//Ods
-	ods, err := o.Db.Ods.GetByQuery(q)
-	if err == nil && ods != nil && len(ods) > 0 {
-		odColl := o.Db.Ods.GetCollection()
-		for _, od := range ods {
-			od.VideoFile = createVideoFile(params, od.CreatedDate)
-			filter := bson.M{"_id": od.Id}
-			_, err = odColl.ReplaceOne(ctx, filter, od)
-		}
-	}
-
-	//Frs
-	frs, err := o.Db.Frs.GetByQuery(q)
-	if err == nil && frs != nil && len(frs) > 0 {
-		frColl := o.Db.Frs.GetCollection()
-		for _, fr := range frs {
-			fr.VideoFile = createVideoFile(params, fr.CreatedDate)
-			filter := bson.M{"_id": fr.Id}
-			_, err = frColl.ReplaceOne(ctx, filter, fr)
-		}
-	}
-
-	//Alpr
-	alprs, err := o.Db.Alprs.GetByQuery(q)
-	if err == nil && alprs != nil && len(alprs) > 0 {
-		alprColl := o.Db.Alprs.GetCollection()
-		for _, alpr := range alprs {
-			alpr.VideoFile = createVideoFile(params, alpr.CreatedDate)
-			filter := bson.M{"_id": alpr.Id}
-			_, err = alprColl.ReplaceOne(ctx, filter, alpr)
+	ais, err := o.Db.Ais.GetByQuery(q)
+	if err == nil && ais != nil && len(ais) > 0 {
+		aiColl := o.Db.Ais.GetCollection()
+		for _, ai := range ais {
+			ai.VideoFile = createVideoFile(params, ai.CreatedDate)
+			filter := bson.M{"_id": ai.Id}
+			_, err = aiColl.ReplaceOne(ctx, filter, ai)
 		}
 	}
 
@@ -142,206 +76,71 @@ func (o *MongoRepository) SetVideoFields(params *data.SetVideoFileParams) error 
 }
 
 func (o *MongoRepository) SetVideoFieldsMerged(params *data.SetVideoFileMergeParams) error {
-	err := data.GenericVideoFileFunc(&OdVideoFile{Db: o.Db}, params)
-	err = data.GenericVideoFileFunc(&FrVideoFile{Db: o.Db}, params)
-	err = data.GenericVideoFileFunc(&AlprVideoFile{Db: o.Db}, params)
+	err := data.GenericVideoFileFunc(&AiVideoFile{Db: o.Db}, params)
 	return err
 }
 
-// Ods
-type OdVideoFile struct {
+type AiVideoFile struct {
 	Db *DbContext
 }
 
-func (o *OdVideoFile) GetEntitiesByName(videoFileName string) ([]interface{}, error) {
-	entities, err := o.Db.Ods.GetByQuery(bson.M{"video_file.name": videoFileName})
+func (o *AiVideoFile) GetEntitiesByName(videoFileName string) ([]interface{}, error) {
+	entities, err := o.Db.Ais.GetByQuery(bson.M{"video_file.name": videoFileName})
 	return data.TypedToInterfaceArray(entities), err
 }
 
-func (o *OdVideoFile) GetDuration(entity interface{}) int {
-	od := entity.(*OdEntity)
-	return od.VideoFile.Duration
+func (o *AiVideoFile) GetDuration(entity interface{}) int {
+	ai := entity.(*AiEntity)
+	return ai.VideoFile.Duration
 }
 
-func (o *OdVideoFile) GetEntitiesByNameAndMerged(videoFileName string, merged bool) ([]interface{}, error) {
-	entities, err := o.Db.Ods.GetByQuery(bson.M{"video_file.name": videoFileName, "video_file.merged": merged})
+func (o *AiVideoFile) GetEntitiesByNameAndMerged(videoFileName string, merged bool) ([]interface{}, error) {
+	entities, err := o.Db.Ais.GetByQuery(bson.M{"video_file.name": videoFileName, "video_file.merged": merged})
 	return data.TypedToInterfaceArray(entities), err
 }
 
-func (o *OdVideoFile) GetName(entity interface{}) string {
-	od := entity.(*OdEntity)
-	return od.VideoFile.Name
+func (o *AiVideoFile) GetName(entity interface{}) string {
+	ai := entity.(*AiEntity)
+	return ai.VideoFile.Name
 }
 
-func (o *OdVideoFile) GetObjectAppearsAt(entity interface{}) int {
-	od := entity.(*OdEntity)
-	return od.VideoFile.ObjectAppearsAt
+func (o *AiVideoFile) GetObjectAppearsAt(entity interface{}) int {
+	ai := entity.(*AiEntity)
+	return ai.VideoFile.ObjectAppearsAt
 }
 
-func (o *OdVideoFile) GetCreatedDate(entity interface{}) time.Time {
-	od := entity.(*OdEntity)
-	return od.CreatedDate.Time()
+func (o *AiVideoFile) GetCreatedDate(entity interface{}) time.Time {
+	ai := entity.(*AiEntity)
+	return ai.CreatedDate.Time()
 }
 
-func (o *OdVideoFile) SetObjectAppearsAt(entity interface{}, objectAppearsAt int) {
-	od := entity.(*OdEntity)
-	od.VideoFile.ObjectAppearsAt = objectAppearsAt
+func (o *AiVideoFile) SetObjectAppearsAt(entity interface{}, objectAppearsAt int) {
+	ai := entity.(*AiEntity)
+	ai.VideoFile.ObjectAppearsAt = objectAppearsAt
 }
 
-func (o *OdVideoFile) SetName(entity interface{}, name string) {
-	od := entity.(*OdEntity)
-	od.VideoFile.Name = name
+func (o *AiVideoFile) SetName(entity interface{}, name string) {
+	ai := entity.(*AiEntity)
+	ai.VideoFile.Name = name
 }
 
-func (o *OdVideoFile) SetDuration(entity interface{}, duration int) {
-	od := entity.(*OdEntity)
-	od.VideoFile.Duration = duration
+func (o *AiVideoFile) SetDuration(entity interface{}, duration int) {
+	ai := entity.(*AiEntity)
+	ai.VideoFile.Duration = duration
 }
 
-func (o *OdVideoFile) SetMerged(entity interface{}, merged bool) {
-	od := entity.(*OdEntity)
-	od.VideoFile.Merged = merged
+func (o *AiVideoFile) SetMerged(entity interface{}, merged bool) {
+	ai := entity.(*AiEntity)
+	ai.VideoFile.Merged = merged
 }
 
-func (o *OdVideoFile) SetCreatedDate(entity interface{}, createdDate time.Time) {
-	od := entity.(*OdEntity)
-	od.VideoFile.CreatedDate = primitive.NewDateTimeFromTime(createdDate)
+func (o *AiVideoFile) SetCreatedDate(entity interface{}, createdDate time.Time) {
+	ai := entity.(*AiEntity)
+	ai.VideoFile.CreatedDate = primitive.NewDateTimeFromTime(createdDate)
 }
 
-func (o *OdVideoFile) Update(entity interface{}) error {
-	od := entity.(*OdEntity)
-	_, err := o.Db.Ods.GetCollection().ReplaceOne(context.TODO(), bson.M{"_id": od.Id}, od)
-	return err
-}
-
-//Frs
-type FrVideoFile struct {
-	Db *DbContext
-}
-
-func (f *FrVideoFile) GetEntitiesByName(videoFileName string) ([]interface{}, error) {
-	entities, err := f.Db.Frs.GetByQuery(bson.M{"video_file.name": videoFileName})
-	return data.TypedToInterfaceArray(entities), err
-}
-
-func (f *FrVideoFile) GetDuration(entity interface{}) int {
-	fr := entity.(*FrEntity)
-	return fr.VideoFile.Duration
-}
-
-func (f *FrVideoFile) GetEntitiesByNameAndMerged(videoFileName string, merged bool) ([]interface{}, error) {
-	entities, err := f.Db.Frs.GetByQuery(bson.M{"video_file.name": videoFileName, "video_file.merged": merged})
-	return data.TypedToInterfaceArray(entities), err
-}
-
-func (f *FrVideoFile) GetName(entity interface{}) string {
-	fr := entity.(*FrEntity)
-	return fr.VideoFile.Name
-}
-
-func (f *FrVideoFile) GetObjectAppearsAt(entity interface{}) int {
-	fr := entity.(*FrEntity)
-	return fr.VideoFile.ObjectAppearsAt
-}
-
-func (f *FrVideoFile) GetCreatedDate(entity interface{}) time.Time {
-	fr := entity.(*FrEntity)
-	return fr.CreatedDate.Time()
-}
-
-func (f *FrVideoFile) SetObjectAppearsAt(entity interface{}, objectAppearsAt int) {
-	fr := entity.(*FrEntity)
-	fr.VideoFile.ObjectAppearsAt = objectAppearsAt
-}
-
-func (f *FrVideoFile) SetName(entity interface{}, name string) {
-	fr := entity.(*FrEntity)
-	fr.VideoFile.Name = name
-}
-
-func (f *FrVideoFile) SetDuration(entity interface{}, duration int) {
-	fr := entity.(*FrEntity)
-	fr.VideoFile.Duration = duration
-}
-
-func (f *FrVideoFile) SetMerged(entity interface{}, merged bool) {
-	fr := entity.(*FrEntity)
-	fr.VideoFile.Merged = merged
-}
-
-func (f *FrVideoFile) SetCreatedDate(entity interface{}, createdDate time.Time) {
-	fr := entity.(*FrEntity)
-	fr.VideoFile.CreatedDate = primitive.NewDateTimeFromTime(createdDate)
-}
-
-func (f *FrVideoFile) Update(entity interface{}) error {
-	fr := entity.(*FrEntity)
-	_, err := f.Db.Frs.GetCollection().ReplaceOne(context.TODO(), bson.M{"_id": fr.Id}, fr)
-	return err
-}
-
-//Alprs
-type AlprVideoFile struct {
-	Db *DbContext
-}
-
-func (a *AlprVideoFile) GetEntitiesByName(videoFileName string) ([]interface{}, error) {
-	entities, err := a.Db.Alprs.GetByQuery(bson.M{"video_file.name": videoFileName})
-	return data.TypedToInterfaceArray(entities), err
-}
-
-func (a *AlprVideoFile) GetDuration(entity interface{}) int {
-	alpr := entity.(*AlprEntity)
-	return alpr.VideoFile.Duration
-}
-
-func (a *AlprVideoFile) GetEntitiesByNameAndMerged(videoFileName string, merged bool) ([]interface{}, error) {
-	entities, err := a.Db.Alprs.GetByQuery(bson.M{"video_file.name": videoFileName, "video_file.merged": merged})
-	return data.TypedToInterfaceArray(entities), err
-}
-
-func (a *AlprVideoFile) GetName(entity interface{}) string {
-	alpr := entity.(*AlprEntity)
-	return alpr.VideoFile.Name
-}
-
-func (a *AlprVideoFile) GetObjectAppearsAt(entity interface{}) int {
-	alpr := entity.(*AlprEntity)
-	return alpr.VideoFile.ObjectAppearsAt
-}
-
-func (a *AlprVideoFile) GetCreatedDate(entity interface{}) time.Time {
-	alpr := entity.(*AlprEntity)
-	return alpr.CreatedDate.Time()
-}
-
-func (a *AlprVideoFile) SetObjectAppearsAt(entity interface{}, objectAppearsAt int) {
-	alpr := entity.(*AlprEntity)
-	alpr.VideoFile.ObjectAppearsAt = objectAppearsAt
-}
-
-func (a *AlprVideoFile) SetName(entity interface{}, name string) {
-	alpr := entity.(*AlprEntity)
-	alpr.VideoFile.Name = name
-}
-
-func (a *AlprVideoFile) SetDuration(entity interface{}, duration int) {
-	alpr := entity.(*AlprEntity)
-	alpr.VideoFile.Duration = duration
-}
-
-func (a *AlprVideoFile) SetMerged(entity interface{}, merged bool) {
-	alpr := entity.(*AlprEntity)
-	alpr.VideoFile.Merged = merged
-}
-
-func (a *AlprVideoFile) SetCreatedDate(entity interface{}, createdDate time.Time) {
-	alpr := entity.(*AlprEntity)
-	alpr.VideoFile.CreatedDate = primitive.NewDateTimeFromTime(createdDate)
-}
-
-func (a *AlprVideoFile) Update(entity interface{}) error {
-	alpr := entity.(*AlprEntity)
-	_, err := a.Db.Alprs.GetCollection().ReplaceOne(context.TODO(), bson.M{"_id": alpr.Id}, alpr)
+func (o *AiVideoFile) Update(entity interface{}) error {
+	ai := entity.(*AiEntity)
+	_, err := o.Db.Ais.GetCollection().ReplaceOne(context.TODO(), bson.M{"_id": ai.Id}, ai)
 	return err
 }

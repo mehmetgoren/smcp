@@ -13,7 +13,6 @@ import (
 	"smcp/models"
 	"smcp/reps"
 	"smcp/utils"
-	"strconv"
 	"time"
 )
 
@@ -171,40 +170,13 @@ func (v *AiClipProcessor) Start() {
 }
 
 func predicateSourceId(queueModel *models.AiClipQueueModel, sourceId string) bool {
-	switch queueModel.AiType {
-	case models.Od:
-		return queueModel.Od.SourceId == sourceId
-	case models.Fr:
-		return queueModel.Fr.SourceId == sourceId
-	case models.Alpr:
-		return queueModel.Alpr.SourceId == sourceId
-	}
-	log.Println("unsupported type has been detected, value is " + strconv.Itoa(queueModel.AiType))
-	return false
+	return queueModel.Ai.SourceId == sourceId
 }
 
 func getCreatedAt(queueModel *models.AiClipQueueModel) string {
-	switch queueModel.AiType {
-	case models.Od:
-		return queueModel.Od.CreatedAt
-	case models.Fr:
-		return queueModel.Fr.CreatedAt
-	case models.Alpr:
-		return queueModel.Alpr.CreatedAt
-	}
-	log.Println("unsupported type has been detected, value is " + strconv.Itoa(queueModel.AiType))
-	return ""
+	return queueModel.Ai.CreatedAt
 }
 
 func getId(queueModel *models.AiClipQueueModel) string {
-	switch queueModel.AiType {
-	case models.Od:
-		return queueModel.Od.Id
-	case models.Fr:
-		return queueModel.Fr.Id
-	case models.Alpr:
-		return queueModel.Alpr.Id
-	}
-	log.Println("unsupported type has been detected, value is " + strconv.Itoa(queueModel.AiType))
-	return ""
+	return queueModel.Ai.Id
 }

@@ -5,25 +5,25 @@ import (
 	"smcp/models"
 )
 
-type OdMapper struct {
+type AiMapper struct {
 	Config *models.Config
 }
 
-func (o *OdMapper) Map(source *models.ObjectDetectionModel) []*OdEntity {
-	ret := make([]*OdEntity, 0)
-	for _, do := range source.DetectedObjects {
-		entity := &OdEntity{}
+func (o *AiMapper) Map(source *models.AiDetectionModel) []*AiEntity {
+	ret := make([]*AiEntity, 0)
+	for _, do := range source.Detections {
+		entity := &AiEntity{}
+		entity.Module = source.Module
 		entity.GroupId = source.Id
 		entity.SourceId = source.SourceId
 		sio := &data.SaveImageOptions{Config: o.Config}
-		sio.MapFromOd(source)
+		sio.MapFromAi(source)
 		imageFileName, _ := sio.SaveImage()
 		entity.ImageFileName = imageFileName
 		entity.VideoFileName = ""
 		entity.SetupDates(source.CreatedAt)
-		entity.PredScore = do.PredScore
-		entity.PredClsIdx = do.PredClsIdx
-		entity.PredClsName = do.PredClsName
+		entity.Score = do.Score
+		entity.Label = do.Label
 		entity.X1 = do.Box.X1
 		entity.Y1 = do.Box.Y1
 		entity.X2 = do.Box.X2
