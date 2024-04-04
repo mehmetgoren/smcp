@@ -1,10 +1,10 @@
-docker build -t smcp:v1.0.1 .
-docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sde1:/mnt/sde1 smcp:v1.0.1
+docker build -t smcp:v1.0.2 .
+docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sde1:/mnt/sde1 smcp:v1.0.2
 
 gokalpgoren
     amd64:
-        docker build -t gokalpgoren/smcp:v1.0.1-amd64 .
-        docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sde1:/mnt/sde1 gokalpgoren/smcp:v1.0.1-amd64
+        docker build -t gokalpgoren/smcp:v1.0.2-amd64 .
+        docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sde1:/mnt/sde1 gokalpgoren/smcp:v1.0.2-amd64
     raspi4:
-        docker build -t gokalpgoren/smcp:v1.0.1-arm64v8 .
-        docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sda1:/mnt/sda1 gokalpgoren/smcp:v1.0.1-raspi4
+        docker build -t gokalpgoren/smcp:v1.0.2-arm64v8 .
+        docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sda1:/mnt/sda1 gokalpgoren/smcp:v1.0.2-raspi4
