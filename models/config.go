@@ -47,11 +47,11 @@ type Config struct {
 		ProcessCount int  `json:"process_count"`
 		Overlay      bool `json:"overlay"`
 	} `json:"snapshot"`
-	Hub struct {
+	Desima struct {
 		Enabled       bool   `json:"enabled"`
 		Address       string `json:"address"`
 		Token         string `json:"token"`
 		WebAppAddress string `json:"web_app_address"`
 		MaxRetry      int    `json:"max_retry"`
-	} `json:"hub"`
+	} `json:"desima"`
 }
