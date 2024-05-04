@@ -22,21 +22,21 @@ type StreamModel struct {
 	MsContainerPorts    string `json:"ms_container_ports" redis:"ms_container_ports"`
 	MsContainerCommands string `json:"ms_container_commands" redis:"ms_container_commands"`
 
-	MpFfmpegReaderOwnerPid int `json:"mp_ffmpeg_reader_owner_pid" redis:"mp_ffmpeg_reader_owner_pid"`
-	FfmpegReaderFrameRate  int `json:"ffmpeg_reader_frame_rate" redis:"ffmpeg_reader_frame_rate"`
-	FfmpegReaderWidth      int `json:"ffmpeg_reader_width" redis:"ffmpeg_reader_width"`
-	FfmpegReaderHeight     int `json:"ffmpeg_reader_height" redis:"ffmpeg_reader_height"`
+	MpFfmpegReaderOwnerPid int     `json:"mp_ffmpeg_reader_owner_pid" redis:"mp_ffmpeg_reader_owner_pid"`
+	FfmpegReaderFrameRate  float32 `json:"ffmpeg_reader_frame_rate" redis:"ffmpeg_reader_frame_rate"`
+	FfmpegReaderWidth      int     `json:"ffmpeg_reader_width" redis:"ffmpeg_reader_width"`
+	FfmpegReaderHeight     int     `json:"ffmpeg_reader_height" redis:"ffmpeg_reader_height"`
 
 	RecordEnabled  bool   `json:"record_enabled" redis:"record_enabled"`
 	RecordPid      int    `json:"record_pid" redis:"record_pid"`
 	RecordArgs     string `json:"record_args" redis:"record_args"`
 	RecordDuration int    `json:"record_duration" redis:"record_duration"`
 
-	SnapshotEnabled   bool `json:"snapshot_enabled" redis:"snapshot_enabled"`
-	SnapshotPid       int  `json:"snapshot_pid" redis:"snapshot_pid"`
-	SnapshotFrameRate int  `json:"snapshot_frame_rate" redis:"snapshot_frame_rate"`
-	SnapshotWidth     int  `json:"snapshot_width" redis:"snapshot_width"`
-	SnapshotHeight    int  `json:"snapshot_height" redis:"snapshot_height"`
+	SnapshotEnabled   bool    `json:"snapshot_enabled" redis:"snapshot_enabled"`
+	SnapshotPid       int     `json:"snapshot_pid" redis:"snapshot_pid"`
+	SnapshotFrameRate float32 `json:"snapshot_frame_rate" redis:"snapshot_frame_rate"`
+	SnapshotWidth     int     `json:"snapshot_width" redis:"snapshot_width"`
+	SnapshotHeight    int     `json:"snapshot_height" redis:"snapshot_height"`
 
 	AiClipEnabled bool   `json:"ai_clip_enabled" redis:"ai_clip_enabled"`
 	AiClipPid     int    `json:"ai_clip_pid" redis:"ai_clip_pid"`
