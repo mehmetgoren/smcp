@@ -1,10 +1,10 @@
-docker build -t smcp:v1.0.2 .
-docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sdc1/feniks_data_docker:/mnt/sdc1/feniks_data_docker smcp:v1.0.2
+docker build -t smcp:v1.0.3 .
+docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sdc1/feniks_data_docker:/mnt/sdc1/feniks_data_docker smcp:v1.0.3
 
 gokalpgoren
     amd64:
-        docker build -t gokalpgoren/smcp:v1.0.2-amd64 .
-        docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sdc1/feniks_data_docker:/mnt/sdc1/feniks_data_docker gokalpgoren/smcp:v1.0.2-amd64
+        docker build -t gokalpgoren/smcp:v1.0.3-amd64 .
+        docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sdc1/feniks_data_docker:/mnt/sdc1/feniks_data_docker gokalpgoren/smcp:v1.0.3-amd64
     raspi4:
-        docker build -t gokalpgoren/smcp:v1.0.2-arm64v8 .
-        docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sda1:/mnt/sda1 gokalpgoren/smcp:v1.0.2-raspi4
+        docker build -t gokalpgoren/smcp:v1.0.3-arm64v8 .
+        docker run -it --restart unless-stopped --name smcp-instance --net host -e TZ=Europe/Istanbul -v /mnt/sda1:/mnt/sda1 gokalpgoren/smcp:v1.0.3-raspi4
