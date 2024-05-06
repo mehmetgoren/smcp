@@ -8,6 +8,6 @@ ADD . /app
 
 WORKDIR /app
 
-RUN go build -o main .
+RUN go build -buildvcs=false -o main .
 
 CMD ["/app/main"]
